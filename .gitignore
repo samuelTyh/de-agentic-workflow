@@ -1,0 +1,17 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Audit logs (persist locally, not in repo)
+logs/audit/*.log
+logs/audit/*.jsonl
+
+# Visual companion brainstorm sessions
+.superpowers/
