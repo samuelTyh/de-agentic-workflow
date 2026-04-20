@@ -1,0 +1,34 @@
+# Audit Policy Configuration
+# Defines what gets logged and where.
+
+logging:
+  directory: logs/audit
+  git_ignored: true
+
+write_actions:
+  log_level: full
+  fields:
+    - user
+    - agent
+    - action
+    - timestamp
+    - approval_status
+    - details
+
+read_actions:
+  log_level: session_summary
+  fields:
+    - user
+    - agent
+    - session_start
+    - session_end
+    - actions_count
+
+retention:
+  local_days: 90
+  shared_push: optional
+
+# To enable shared audit log push:
+# shared:
+#   destination: "https://your-logging-endpoint"
+#   format: jsonl

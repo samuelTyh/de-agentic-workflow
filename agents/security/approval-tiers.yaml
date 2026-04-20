@@ -1,0 +1,151 @@
+# Approval Tiers Configuration
+# Defines what each agent can do autonomously, what needs approval, and what is forbidden.
+# To promote a pattern: move it from requires_approval to autonomous.
+# To add a new agent: copy the _template section and fill in.
+
+pmo:
+  autonomous:
+    - jira:read
+    - notion:read
+    - summarize
+  requires_approval:
+    - jira:create
+    - jira:update
+    - jira:transition
+    - jira:assign
+    - notion:write
+  forbidden:
+    - jira:delete
+    - jira:bulk_reassign
+  rate_limits:
+    write_actions_per_session: 5
+
+migration:
+  autonomous:
+    - snowflake:read
+    - snowflake:diff
+    - snowflake:inventory
+    - snowflake:validate_row_counts
+  requires_approval:
+    - snowflake:generate_script
+    - airflow:update_config
+    - snowflake:modify_objects
+  forbidden:
+    - snowflake:drop
+    - snowflake:modify_grants_prod
+
+ds_ml_liaison:
+  autonomous:
+    - git:read_repos
+    - jira:read
+    - notion:read
+    - snowflake:read_metadata
+  requires_approval:
+    - notion:write_summary
+    - jira:create_followup
+  forbidden:
+    - git:modify_ml_code
+    - git:modify_experiment_configs
+
+snowflake_sql:
+  autonomous:
+    - snowflake:read_query_history
+    - snowflake:analyze_performance
+    - snowflake:review_sql
+  requires_approval:
+    - snowflake:write_sql
+    - snowflake:modify_tables
+    - snowflake:create_procedures
+  forbidden:
+    - snowflake:execute_prod_dml
+    - snowflake:drop_tables
+    - snowflake:modify_grants
+
+snowpark_dev:
+  autonomous:
+    - snowpark:review_code
+    - snowpark:analyze_performance
+    - snowpark:inspect_dataframes
+  requires_approval:
+    - snowpark:write_procedures
+    - snowpark:write_udfs
+    - snowpark:refactor
+    - snowpark:write_tests
+  forbidden:
+    - snowpark:deploy_prod
+    - snowpark:modify_warehouse_config
+    - snowpark:modify_grants
+
+data_engineering:
+  autonomous:
+    - airflow:review_dags
+    - airflow:analyze_dependencies
+    - data_model:review
+    - data_quality:review
+  requires_approval:
+    - airflow:write_dags
+    - airflow:modify_dags
+    - data_model:create
+    - data_quality:create_framework
+  forbidden:
+    - airflow:modify_prod_dags
+    - airflow:change_prod_connections
+    - airflow:delete_dags
+
+testing:
+  autonomous:
+    - test:review_coverage
+    - test:analyze_failures
+    - test:audit_quality
+    - azdo:read_test_results
+  requires_approval:
+    - test:write_unit
+    - test:write_integration
+    - test:write_e2e
+    - test:refactor_infrastructure
+  forbidden:
+    - test:execute_against_prod
+    - test:modify_prod_config
+    - test:skip_existing
+
+code_review:
+  autonomous:
+    - git:read_prs
+    - git:review_diffs
+    - git:check_security
+    - jira:read_ticket_context
+  requires_approval:
+    - git:post_review_comments
+    - git:request_changes
+    - git:approve_pr
+  forbidden:
+    - git:merge_pr
+    - git:close_pr
+    - git:push_to_others_branches
+    - git:approve_prod_deploy_pr
+
+platform_engineering:
+  autonomous:
+    - azdo:read_pipelines
+    - azdo:analyze_performance
+    - azdo:audit_conventions
+  requires_approval:
+    - azdo:create_pipeline
+    - azdo:modify_pipeline
+    - azdo:update_variables
+    - azdo:create_template
+  forbidden:
+    - azdo:delete_pipeline
+    - azdo:modify_prod_gates
+    - azdo:change_service_principals
+
+# --- Template for new agents ---
+# _template:
+#   autonomous:
+#     - service:read_action
+#   requires_approval:
+#     - service:write_action
+#   forbidden:
+#     - service:destructive_action
+#   rate_limits:
+#     write_actions_per_session: 5

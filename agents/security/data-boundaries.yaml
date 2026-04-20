@@ -1,0 +1,93 @@
+# Data Boundaries Configuration
+# Defines what data each agent can access. Agents must declare their
+# data scope in their own CLAUDE.md. This file provides the guardrails.
+
+global_rules:
+  - never_surface_credentials
+  - never_surface_connection_strings
+  - never_surface_pii_in_outputs
+  - respect_notion_exclusion_tags
+
+per_agent:
+  pmo:
+    allowed_data:
+      - jira:all_tickets
+      - notion:non_excluded_pages
+    restricted_data:
+      - snowflake:row_level_data
+      - git:source_code
+
+  migration:
+    allowed_data:
+      - snowflake:metadata
+      - snowflake:object_definitions
+      - snowflake:role_hierarchies
+      - snowflake:row_counts
+    restricted_data:
+      - snowflake:row_level_pii
+
+  ds_ml_liaison:
+    allowed_data:
+      - git:ml_repos_read_only
+      - jira:ml_related_tickets
+      - notion:ml_related_pages
+      - snowflake:feature_table_metadata
+    restricted_data:
+      - git:ml_repos_write
+      - snowflake:raw_training_data
+
+  snowflake_sql:
+    allowed_data:
+      - snowflake:query_history
+      - snowflake:table_structures
+      - snowflake:execution_plans
+    restricted_data:
+      - snowflake:row_level_pii
+
+  snowpark_dev:
+    allowed_data:
+      - snowflake:snowpark_session
+      - git:snowpark_code
+    restricted_data:
+      - snowflake:row_level_pii
+      - snowflake:prod_warehouse_config
+
+  data_engineering:
+    allowed_data:
+      - airflow:dag_definitions
+      - airflow:task_logs
+      - git:pipeline_code
+    restricted_data:
+      - airflow:prod_connections
+      - airflow:prod_variables
+
+  testing:
+    allowed_data:
+      - git:test_code
+      - azdo:test_results
+      - snowflake:test_environments
+    restricted_data:
+      - snowflake:prod_data
+      - azdo:prod_configs
+
+  code_review:
+    allowed_data:
+      - git:pr_diffs
+      - git:commit_history
+      - jira:ticket_context
+    restricted_data:
+      - git:push_access
+      - git:merge_access
+
+  platform_engineering:
+    allowed_data:
+      - azdo:pipeline_yaml
+      - azdo:build_telemetry
+    restricted_data:
+      - azdo:service_principal_secrets
+      - azdo:prod_deployment_gates
+
+# To add boundaries for a new agent:
+# 1. Add a new entry under per_agent
+# 2. List allowed_data and restricted_data
+# 3. Reference this in the agent's CLAUDE.md
