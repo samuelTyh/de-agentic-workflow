@@ -1,0 +1,125 @@
+# Setup Guide
+
+Onboarding guide for new team members to use the agent-workflow framework.
+
+## Prerequisites
+
+- [Claude Code](https://claude.ai/code) installed
+- Python 3.12+
+- Node.js (for npx)
+- Access to: Jira, Notion, Snowflake, Azure DevOps
+
+## Step 1: Clone the Repo
+
+```bash
+git clone <repo-url>
+cd agent-workflow-dev
+```
+
+## Step 2: Connect Jira (built-in)
+
+Jira uses Claude Code's built-in Atlassian Rovo connector — no API tokens needed.
+
+1. Open Claude Code
+2. Go to Settings > Connectors (or use `/connectors`)
+3. Find **Atlassian Rovo** and click **Connect**
+4. Complete the OAuth flow in your browser
+5. Done — Claude Code now has access to your Jira project
+
+## Step 3: Connect Notion (built-in)
+
+Notion uses Claude Code's built-in Notion connector — no API tokens needed.
+
+1. Open Claude Code
+2. Go to Settings > Connectors (or use `/connectors`)
+3. Find **Notion** and click **Connect**
+4. Complete the OAuth flow and select the workspace to grant access
+5. Done — Claude Code now has access to your Notion workspace
+
+## Step 4: Configure Snowflake MCP Server
+
+Snowflake uses a self-hosted MCP server (`Snowflake-Labs/mcp`).
+
+### Install
+
+```bash
+pip install snowflake-mcp-server
+# or
+uv add snowflake-mcp-server
+```
+
+### Set Environment Variables
+
+Add to your shell profile (`~/.zshrc`, `~/.bashrc`, etc.):
+
+```bash
+# Snowflake — primary account (account A)
+export SNOWFLAKE_ACCOUNT="your-account-identifier"
+export SNOWFLAKE_USER="your-username"
+export SNOWFLAKE_PASSWORD="your-password"
+export SNOWFLAKE_ROLE="your-default-role"
+export SNOWFLAKE_WAREHOUSE="your-default-warehouse"
+
+# Snowflake — migration target (account B)
+# Only needed if you're working on account migration
+export SNOWFLAKE_ACCOUNT_B="target-account-identifier"
+export SNOWFLAKE_USER_B="your-username-on-b"
+export SNOWFLAKE_PASSWORD_B="your-password-on-b"
+export SNOWFLAKE_ROLE_B="your-role-on-b"
+export SNOWFLAKE_WAREHOUSE_B="your-warehouse-on-b"
+```
+
+### Register in Claude Code
+
+```bash
+claude mcp add snowflake -- python -m snowflake_mcp_server
+```
+
+For dual-account migration work:
+```bash
+claude mcp add snowflake_account_b -- python -m snowflake_mcp_server \
+  --account "$SNOWFLAKE_ACCOUNT_B" \
+  --user "$SNOWFLAKE_USER_B" \
+  --password "$SNOWFLAKE_PASSWORD_B" \
+  --role "$SNOWFLAKE_ROLE_B" \
+  --warehouse "$SNOWFLAKE_WAREHOUSE_B"
+```
+
+## Step 5: Configure Azure DevOps MCP Server
+
+Azure DevOps uses a self-hosted MCP server (`@azure-devops/mcp`).
+
+### Create a Personal Access Token
+
+1. Go to Azure DevOps > User Settings > Personal Access Tokens
+2. Create a new token with the scopes your work requires (work items, pipelines, code)
+3. Copy the token
+
+### Set Environment Variables
+
+```bash
+export AZDO_PAT="your-personal-access-token"
+export AZDO_ORG_URL="https://dev.azure.com/yourorg"
+```
+
+### Register in Claude Code
+
+```bash
+claude mcp add azure_devops -- npx -y @azure-devops/mcp
+```
+
+## Verify Setup
+
+After completing all steps, start a Claude Code session in this repo and verify:
+
+```
+> Summarize my current Jira sprint
+> Show me recent Notion meeting notes
+> List databases in Snowflake account A
+> Show Azure DevOps pipeline status
+```
+
+If any of these fail, check that:
+1. Built-in connectors show as "Connected" in Claude Code settings
+2. Environment variables are set (`echo $SNOWFLAKE_ACCOUNT`, etc.)
+3. MCP servers are registered (`claude mcp list`)
