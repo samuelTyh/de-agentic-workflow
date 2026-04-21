@@ -17,6 +17,7 @@ When a user makes a request, classify the intent and load the appropriate agent 
 | Unit tests, integration tests, e2e tests, test coverage | QA / Testing Agent | `agents/testing/CLAUDE.md` |
 | PR review, code quality, security checks | Code Review Agent | `agents/code-review/CLAUDE.md` |
 | Azure DevOps pipelines, CI/CD, build optimization | Platform Engineering Agent | `agents/platform-engineering/CLAUDE.md` |
+| System architecture, pipeline architecture, design decisions, ADRs | Architecture Agent | `agents/architecture/CLAUDE.md` |
 
 If a request does not clearly map to one agent, ask the user to clarify.
 

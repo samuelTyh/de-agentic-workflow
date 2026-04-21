@@ -87,6 +87,15 @@ per_agent:
       - azdo:service_principal_secrets
       - azdo:prod_deployment_gates
 
+  architecture:
+    allowed_data:
+      - agents:all_definitions
+      - docs:adr
+      - git:codebase_structure
+    restricted_data:
+      - snowflake:prod_data
+      - credentials:all
+
 # To add boundaries for a new agent:
 # 1. Add a new entry under per_agent
 # 2. List allowed_data and restricted_data

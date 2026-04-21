@@ -139,6 +139,21 @@ platform_engineering:
     - azdo:modify_prod_gates
     - azdo:change_service_principals
 
+architecture:
+  autonomous:
+    - architecture:evaluate_tradeoffs
+    - architecture:assess_impact
+    - architecture:review_patterns
+    - architecture:audit_conventions
+  requires_approval:
+    - architecture:publish_adr
+    - architecture:set_standard
+    - architecture:propose_design
+  forbidden:
+    - architecture:implement_code
+    - architecture:override_adr
+    - architecture:modify_production
+
 # --- Template for new agents ---
 # _template:
 #   autonomous:

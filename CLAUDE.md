@@ -36,6 +36,7 @@ This repo functions as a Config-First orchestrator. When a user makes a request,
 | QA / Testing | `agents/testing/` | Unit, integration, e2e testing |
 | Code Review | `agents/code-review/` | PR review, code quality, security checks |
 | Platform Eng | `agents/platform-engineering/` | Azure DevOps CI/CD, pipeline optimization |
+| Architecture | `agents/architecture/` | System/pipeline architecture, design decisions, ADRs |
 
 ### Security
 
