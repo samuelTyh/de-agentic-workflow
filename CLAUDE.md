@@ -37,6 +37,17 @@ This repo functions as a Config-First orchestrator. When a user makes a request,
 | Code Review | `agents/code-review/` | PR review, code quality, security checks |
 | Platform Eng | `agents/platform-engineering/` | Azure DevOps CI/CD, pipeline optimization |
 | Architecture | `agents/architecture/` | System/pipeline architecture, design decisions, ADRs |
+| Git Workflow | `agents/git-workflow/` | Branching strategy, PR lifecycle, commit conventions |
+
+### Git Workflow Policy
+
+Direct commits to protected branches (`main`, and `develop` for Git Flow repos) are forbidden. All changes must go through a feature branch and pull request.
+
+- Branching strategy is per-repo — defined in `config/git-workflow.yaml` (GitHub Flow or Git Flow)
+- Branch naming: `<type>/<description>` (types: feat, fix, docs, style, refactor, test, chore, perf)
+- Commits follow Conventional Commits
+- The Code Review Agent auto-generates a first-pass review on every PR (hybrid mode — humans make the final merge decision)
+- Applies on both GitHub and Azure DevOps
 
 ### Security
 

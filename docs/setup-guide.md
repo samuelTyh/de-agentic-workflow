@@ -108,6 +108,46 @@ export AZDO_ORG_URL="https://dev.azure.com/yourorg"
 claude mcp add azure_devops -- npx -y @azure-devops/mcp
 ```
 
+## Step 6: Enable Branch Protection Rules (one-time, per repo)
+
+The framework's Git Workflow Policy forbids direct commits to protected branches. This must also be enforced at the platform level on each hosting provider.
+
+### On GitHub
+
+For each repo, an admin enables branch protection on `main` (and `develop` for Git Flow repos):
+
+1. Go to **Settings → Branches → Branch protection rules → Add rule**
+2. Branch name pattern: `main` (or `develop`)
+3. Enable:
+   - **Require a pull request before merging**
+   - **Require approvals** (at least 1)
+   - **Dismiss stale pull request approvals when new commits are pushed**
+   - **Do not allow bypassing the above settings** (includes admins)
+4. Save
+
+### On Azure DevOps
+
+For each repo, an admin enables branch policies on `main` (and `develop` for Git Flow repos):
+
+1. Go to **Repos → Branches → find the branch → `...` → Branch policies**
+2. Enable:
+   - **Require a minimum number of reviewers** (at least 1)
+   - **Reset code reviewer votes when there are new changes**
+   - **Check for linked work items** (recommended)
+   - **Limit merge types** — squash recommended by default
+3. Save
+
+### Declare Strategy in Config
+
+After enabling platform-level protection, declare the repo's branching strategy in this repo's `config/git-workflow.yaml` so the Git Workflow Agent knows how to operate:
+
+```yaml
+repos:
+  my-repo-name:
+    strategy: github_flow  # or git_flow
+    protected_branches: [main]  # add develop for git_flow
+```
+
 ## Verify Setup
 
 After completing all steps, start a Claude Code session in this repo and verify:

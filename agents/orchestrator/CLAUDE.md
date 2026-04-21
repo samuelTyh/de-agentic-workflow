@@ -18,8 +18,19 @@ When a user makes a request, classify the intent and load the appropriate agent 
 | PR review, code quality, security checks | Code Review Agent | `agents/code-review/CLAUDE.md` |
 | Azure DevOps pipelines, CI/CD, build optimization | Platform Engineering Agent | `agents/platform-engineering/CLAUDE.md` |
 | System architecture, pipeline architecture, design decisions, ADRs | Architecture Agent | `agents/architecture/CLAUDE.md` |
+| Branching, PRs, merges, commit conventions | Git Workflow Agent | `agents/git-workflow/CLAUDE.md` |
 
 If a request does not clearly map to one agent, ask the user to clarify.
+
+## Git Workflow Policy
+
+Direct commits to protected branches are forbidden. All code changes must go through a feature branch and pull request.
+
+- Protected branches per repo are defined in `config/git-workflow.yaml` (at minimum: `main`; for Git Flow repos: `main` and `develop`)
+- When any agent needs to make code changes, it must request the Git Workflow Agent to create a feature branch first
+- PRs are created on GitHub or Azure DevOps per the repo's hosting
+- The Code Review Agent auto-generates a first-pass review on every new PR (hybrid mode — informational, not auto-approving)
+- Humans make the final merge decision
 
 ## Multi-Agent Coordination
 

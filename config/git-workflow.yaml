@@ -1,0 +1,66 @@
+# Git Workflow Configuration
+# Per-repo branching strategy. The Git Workflow Agent reads this to decide
+# branch base, PR target, and what branches are protected.
+#
+# Strategies:
+#   - github_flow: feature → PR → main (simple, continuous deploy)
+#   - git_flow: feature → PR → develop → release → main (scheduled releases)
+#
+# To onboard a new repo: add an entry under `repos:` with its strategy.
+# If a repo is not listed, the `default` entry applies.
+
+default:
+  strategy: github_flow
+  protected_branches:
+    - main
+  branch_naming: "<type>/<description>"
+  branch_types:
+    - feat
+    - fix
+    - docs
+    - style
+    - refactor
+    - test
+    - chore
+    - perf
+  commit_convention: conventional_commits
+  merge_style: squash
+  delete_branch_after_merge: true
+  stale_branch_days: 30
+
+repos:
+  # Template — copy and customize per repo
+
+  # vpp-data-warehouse:
+  #   strategy: git_flow
+  #   protected_branches:
+  #     - main
+  #     - develop
+  #   branch_naming: "<type>/<description>"
+  #   commit_convention: conventional_commits
+  #   merge_style: squash
+  #   delete_branch_after_merge: true
+  #   flow_branches:
+  #     main: production
+  #     develop: integration
+  #     feature_from: develop
+  #     feature_merges_to: develop
+  #     release_from: develop
+  #     release_merges_to: [main, develop]
+  #     hotfix_from: main
+  #     hotfix_merges_to: [main, develop]
+
+  # dcm_mvp/snowddl_mvp:
+  #   strategy: github_flow
+  #   protected_branches:
+  #     - main
+
+  # vpp-snowpark-apps:
+  #   strategy: github_flow
+  #   protected_branches:
+  #     - main
+
+  # vpp-airflow:
+  #   strategy: github_flow
+  #   protected_branches:
+  #     - main

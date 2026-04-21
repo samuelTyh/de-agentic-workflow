@@ -154,6 +154,26 @@ architecture:
     - architecture:override_adr
     - architecture:modify_production
 
+git_workflow:
+  autonomous:
+    - git:read_branches
+    - git:read_commits
+    - git:read_diffs
+    - git:check_pr_status
+    - git:identify_stale_branches
+  requires_approval:
+    - git:create_branch
+    - git:commit_push_feature
+    - git:create_pr
+    - git:link_pr_to_ticket
+    - git:merge_pr
+    - git:delete_merged_branch
+  forbidden:
+    - git:push_to_protected_branch
+    - git:force_push_shared
+    - git:merge_without_review
+    - git:bypass_hooks
+
 # --- Template for new agents ---
 # _template:
 #   autonomous:

@@ -28,14 +28,33 @@ Code review specialist. Reviews PRs and code changes for correctness, style, sec
 - Flag security concerns to the Security / Guardrail Layer
 - Prioritize actionable feedback over style nitpicks
 
+## Hybrid PR Review Flow
+
+**Triggers:**
+- Auto-triggered by the Git Workflow Agent when a new PR is created
+- Manually triggered via the `pr-review.md` prompt template
+
+**Behavior on PR creation:**
+1. Fetch the PR diff and metadata (from GitHub or Azure DevOps — detect which platform)
+2. Run the full review checklist (correctness, security, style, impact, test coverage)
+3. Cross-reference the related Jira ticket for requirement context
+4. Post a single summary comment on the PR with findings, organized by severity
+5. **Do NOT auto-approve** — the comment is informational; humans make the final merge decision
+
+**Platform detection:**
+- GitHub PRs: use `gh` CLI or GitHub API
+- Azure DevOps PRs: use the `@azure-devops/mcp` server
+
 ## Scope Boundary
 
-Review only. Does not write implementation code (domain agents' job) or tests (QA / Testing Agent's job).
+Review only. Does not write implementation code (domain agents' job) or tests (QA / Testing Agent's job). Does not manage branches or PR lifecycle (Git Workflow Agent's job).
 
 ## Integrations
 
 - **Git repos** — PRs, diffs, commit history
-- **Azure DevOps** — PR workflow
+- **GitHub** — PR comments via `gh` CLI or API
+- **Azure DevOps** — PR workflow via MCP server
+- **Git Workflow Agent** — triggers first-pass review on new PRs
 - **Jira** — via PMO for ticket context
 
 ## Data Scope

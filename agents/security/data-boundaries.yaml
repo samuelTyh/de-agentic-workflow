@@ -96,6 +96,17 @@ per_agent:
       - snowflake:prod_data
       - credentials:all
 
+  git_workflow:
+    allowed_data:
+      - git:branches
+      - git:commit_history
+      - git:pr_metadata
+      - git:pr_diffs
+      - config:git_workflow_yaml
+    restricted_data:
+      - git:protected_branch_writes
+      - git:force_push_shared
+
 # To add boundaries for a new agent:
 # 1. Add a new entry under per_agent
 # 2. List allowed_data and restricted_data
