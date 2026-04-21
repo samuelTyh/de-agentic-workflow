@@ -41,7 +41,7 @@ This repo functions as a Config-First orchestrator. When a user makes a request,
 
 ### Git Workflow Policy
 
-Direct commits to protected branches (`main`, and `develop` for Git Flow repos) are forbidden. All changes must go through a feature branch and pull request.
+Direct commits to protected branches are forbidden. All changes must go through a feature branch and pull request. Protected branches are defined per-repo in `config/git-workflow.yaml` — minimum `main`; Git Flow repos also protect the integration branch (team uses `dev`).
 
 - Branching strategy is per-repo — defined in `config/git-workflow.yaml` (GitHub Flow or Git Flow)
 - Branch naming: `<type>/<description>` (types: feat, fix, docs, style, refactor, test, chore, perf)

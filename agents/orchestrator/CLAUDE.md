@@ -26,7 +26,7 @@ If a request does not clearly map to one agent, ask the user to clarify.
 
 Direct commits to protected branches are forbidden. All code changes must go through a feature branch and pull request.
 
-- Protected branches per repo are defined in `config/git-workflow.yaml` (at minimum: `main`; for Git Flow repos: `main` and `develop`)
+- Protected branches per repo are defined in `config/git-workflow.yaml` (minimum: `main`; Git Flow repos also protect the integration branch — the team uses `dev`)
 - When any agent needs to make code changes, it must request the Git Workflow Agent to create a feature branch first
 - PRs are created on GitHub or Azure DevOps per the repo's hosting
 - The Code Review Agent auto-generates a first-pass review on every new PR (hybrid mode — informational, not auto-approving)

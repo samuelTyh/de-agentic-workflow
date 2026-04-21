@@ -4,9 +4,15 @@
 #
 # Strategies:
 #   - github_flow: feature → PR → main (simple, continuous deploy)
-#   - git_flow: feature → PR → develop → release → main (scheduled releases)
+#   - git_flow: feature → PR → <integration_branch> → release → main
+#               (scheduled releases; team uses `dev` as the integration branch)
 #
 # Repo keys use the Azure DevOps full path: <project>/<repo>.
+# `merge_style` is a map keyed by target branch. Values:
+#   - squash
+#   - merge_no_ff   (merge commit, no fast-forward)
+#   - rebase
+#
 # To onboard a new repo: add an entry under `repos:` with its strategy.
 # If a repo is not listed, the `default` entry applies.
 
@@ -25,46 +31,75 @@ default:
     - chore
     - perf
   commit_convention: conventional_commits
-  merge_style: squash
+  merge_style:
+    main: squash
   delete_branch_after_merge: true
   stale_branch_days: 30
 
 repos:
   # Snowflake data warehouse — DDL, pipelines, Snowpark procedures.
-  # Uses Git Flow because of multiple environments and scheduled release discipline.
+  # Uses GitHub Flow: short-lived feature branches against main.
   vpp-data-warehouse/vpp-data-warehouse:
+    strategy: github_flow
+    protected_branches:
+      - main
+    merge_style:
+      main: squash
+
+  # Snowpark apps + Streamlit apps. Git Flow for scheduled releases.
+  vpp-data-warehouse/vpp-snowpark-apps:
     strategy: git_flow
     protected_branches:
       - main
-      - develop
-    branch_naming: "<type>/<description>"
-    commit_convention: conventional_commits
-    merge_style: squash
-    delete_branch_after_merge: true
+      - dev
+    merge_style:
+      main: squash          # release/hotfix into main — squash
+      dev: merge_no_ff      # feature into dev — merge commit preserves history
     flow_branches:
       main: production
-      develop: integration
-      feature_from: develop
-      feature_merges_to: develop
-      release_from: develop
-      release_merges_to: [main, develop]
+      dev: integration
+      feature_from: dev
+      feature_merges_to: dev
+      release_from: dev
+      release_merges_to: [main, dev]
       hotfix_from: main
-      hotfix_merges_to: [main, develop]
+      hotfix_merges_to: [main, dev]
 
-  # Snowpark apps + Streamlit apps — continuous deploy model.
-  vpp-data-warehouse/vpp-snowpark-apps:
-    strategy: github_flow
-    protected_branches:
-      - main
-
-  # Airflow DAGs on Astronomer — continuous deploy via astro deploy.
+  # Airflow DAGs on Astronomer. Git Flow for release discipline.
   vpp-data-warehouse/vpp-airflow:
-    strategy: github_flow
+    strategy: git_flow
     protected_branches:
       - main
+      - dev
+    merge_style:
+      main: squash
+      dev: merge_no_ff
+    flow_branches:
+      main: production
+      dev: integration
+      feature_from: dev
+      feature_merges_to: dev
+      release_from: dev
+      release_merges_to: [main, dev]
+      hotfix_from: main
+      hotfix_merges_to: [main, dev]
 
   # SnowDDL declarative DDL + RBAC (formerly referenced as dcm_mvp/snowddl_mvp).
+  # Git Flow — schema changes gated by release discipline.
   vpp-data-warehouse/enpal-energy-ds-snowflake-infra:
-    strategy: github_flow
+    strategy: git_flow
     protected_branches:
       - main
+      - dev
+    merge_style:
+      main: squash
+      dev: merge_no_ff
+    flow_branches:
+      main: production
+      dev: integration
+      feature_from: dev
+      feature_merges_to: dev
+      release_from: dev
+      release_merges_to: [main, dev]
+      hotfix_from: main
+      hotfix_merges_to: [main, dev]

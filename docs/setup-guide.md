@@ -114,10 +114,10 @@ The framework's Git Workflow Policy forbids direct commits to protected branches
 
 ### On GitHub
 
-For each repo, an admin enables branch protection on `main` (and `develop` for Git Flow repos):
+For each repo, an admin enables branch protection on every branch listed in the repo's `protected_branches` (minimum `main`; Git Flow repos also protect the integration branch — the team uses `dev`):
 
 1. Go to **Settings → Branches → Branch protection rules → Add rule**
-2. Branch name pattern: `main` (or `develop`)
+2. Branch name pattern: `main` (repeat for `dev` on Git Flow repos)
 3. Enable:
    - **Require a pull request before merging**
    - **Require approvals** (at least 1)
@@ -127,7 +127,7 @@ For each repo, an admin enables branch protection on `main` (and `develop` for G
 
 ### On Azure DevOps
 
-For each repo, an admin enables branch policies on `main` (and `develop` for Git Flow repos):
+For each repo, an admin enables branch policies on every branch listed in the repo's `protected_branches` (minimum `main`; Git Flow repos also protect the integration branch — the team uses `dev`):
 
 1. Go to **Repos → Branches → find the branch → `...` → Branch policies**
 2. Enable:
@@ -143,9 +143,12 @@ After enabling platform-level protection, declare the repo's branching strategy 
 
 ```yaml
 repos:
-  my-repo-name:
+  my-project/my-repo:
     strategy: github_flow  # or git_flow
-    protected_branches: [main]  # add develop for git_flow
+    protected_branches: [main]  # add dev for git_flow
+    merge_style:
+      main: squash
+      # dev: merge_no_ff   # add for git_flow
 ```
 
 ## Verify Setup

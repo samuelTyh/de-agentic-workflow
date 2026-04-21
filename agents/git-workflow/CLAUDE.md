@@ -11,9 +11,9 @@ Supported strategies:
 | Strategy | Protected | Flow |
 |----------|-----------|------|
 | `github_flow` | `main` | Feature → PR → main |
-| `git_flow` | `main`, `develop` | Feature → PR → develop → release → main |
+| `git_flow` | `main`, integration branch (team uses `dev`) | Feature → PR → dev → release → main |
 
-If a repo is not listed in the config, the agent falls back to the `default` entry.
+If a repo is not listed in the config, the agent falls back to the `default` entry. Exact branch names for Git Flow are read from each repo's `flow_branches` config.
 
 ## Autonomous (no approval needed)
 
@@ -34,7 +34,7 @@ If a repo is not listed in the config, the agent falls back to the `default` ent
 
 ## Forbidden
 
-- **Push directly to protected branches** (`main`, and `develop` for Git Flow repos) — PR is mandatory
+- **Push directly to protected branches** (per the repo's `protected_branches` list) — PR is mandatory
 - Force-push to shared branches
 - Merge PRs without an approved code review
 - Bypass hooks (`--no-verify`, `--no-gpg-sign`) unless user explicitly authorizes
@@ -49,11 +49,14 @@ Types (from Conventional Commits): `feat`, `fix`, `docs`, `style`, `refactor`, `
 Examples: `feat/migration-tracker`, `fix/dag-timeout`, `docs/runbook-update`.
 
 ### Branch Base
+
+Read the repo's `flow_branches` from the config to get exact branch names. General pattern:
+
 - **GitHub Flow:** Feature branches cut from `main`, PR back to `main`.
-- **Git Flow:**
-  - Feature branches cut from `develop`, PR back to `develop`
-  - Release branches cut from `develop`, PR to both `main` and `develop`
-  - Hotfix branches cut from `main`, PR to both `main` and `develop`
+- **Git Flow** (team uses `dev` as the integration branch):
+  - Feature branches cut from the integration branch, PR back to it
+  - Release branches cut from the integration branch, PR to both `main` and the integration branch
+  - Hotfix branches cut from `main`, PR to both `main` and the integration branch
 
 ### Commit Messages
 Conventional Commits format: `<type>(<scope>): <subject>`.
@@ -72,8 +75,9 @@ When creating a PR:
 
 ### Merge Hygiene
 - Merged feature branches are deleted after merge
-- Squash merge by default unless the repo explicitly configures otherwise
-- Hotfix and release merges back to `develop` (Git Flow) must be completed immediately to prevent drift
+- Merge style is per target branch, read from `merge_style` in the repo config (values: `squash`, `merge_no_ff`, `rebase`)
+- Team convention for Git Flow repos: `squash` into `main`, `merge_no_ff` into the integration branch (preserves feature history)
+- Hotfix and release merges back to the integration branch must be completed immediately to prevent drift
 
 ### Stale Branch Cleanup
 When reporting on repo health, flag branches with no activity > 30 days. Deletion requires user approval.
