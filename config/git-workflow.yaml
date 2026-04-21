@@ -6,6 +6,7 @@
 #   - github_flow: feature → PR → main (simple, continuous deploy)
 #   - git_flow: feature → PR → develop → release → main (scheduled releases)
 #
+# Repo keys use the Azure DevOps full path: <project>/<repo>.
 # To onboard a new repo: add an entry under `repos:` with its strategy.
 # If a repo is not listed, the `default` entry applies.
 
@@ -29,38 +30,41 @@ default:
   stale_branch_days: 30
 
 repos:
-  # Template — copy and customize per repo
+  # Snowflake data warehouse — DDL, pipelines, Snowpark procedures.
+  # Uses Git Flow because of multiple environments and scheduled release discipline.
+  vpp-data-warehouse/vpp-data-warehouse:
+    strategy: git_flow
+    protected_branches:
+      - main
+      - develop
+    branch_naming: "<type>/<description>"
+    commit_convention: conventional_commits
+    merge_style: squash
+    delete_branch_after_merge: true
+    flow_branches:
+      main: production
+      develop: integration
+      feature_from: develop
+      feature_merges_to: develop
+      release_from: develop
+      release_merges_to: [main, develop]
+      hotfix_from: main
+      hotfix_merges_to: [main, develop]
 
-  # vpp-data-warehouse:
-  #   strategy: git_flow
-  #   protected_branches:
-  #     - main
-  #     - develop
-  #   branch_naming: "<type>/<description>"
-  #   commit_convention: conventional_commits
-  #   merge_style: squash
-  #   delete_branch_after_merge: true
-  #   flow_branches:
-  #     main: production
-  #     develop: integration
-  #     feature_from: develop
-  #     feature_merges_to: develop
-  #     release_from: develop
-  #     release_merges_to: [main, develop]
-  #     hotfix_from: main
-  #     hotfix_merges_to: [main, develop]
+  # Snowpark apps + Streamlit apps — continuous deploy model.
+  vpp-data-warehouse/vpp-snowpark-apps:
+    strategy: github_flow
+    protected_branches:
+      - main
 
-  # dcm_mvp/snowddl_mvp:
-  #   strategy: github_flow
-  #   protected_branches:
-  #     - main
+  # Airflow DAGs on Astronomer — continuous deploy via astro deploy.
+  vpp-data-warehouse/vpp-airflow:
+    strategy: github_flow
+    protected_branches:
+      - main
 
-  # vpp-snowpark-apps:
-  #   strategy: github_flow
-  #   protected_branches:
-  #     - main
-
-  # vpp-airflow:
-  #   strategy: github_flow
-  #   protected_branches:
-  #     - main
+  # SnowDDL declarative DDL + RBAC (formerly referenced as dcm_mvp/snowddl_mvp).
+  vpp-data-warehouse/enpal-energy-ds-snowflake-infra:
+    strategy: github_flow
+    protected_branches:
+      - main
