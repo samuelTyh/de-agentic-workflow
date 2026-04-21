@@ -1,0 +1,78 @@
+# CI Pipeline — Build and Test
+# Triggers on PR to main. Runs lint, unit tests, and build.
+# Usage: Reference this template and override parameters as needed.
+
+trigger: none
+
+pr:
+  branches:
+    include:
+      - main
+
+parameters:
+  - name: pythonVersion
+    type: string
+    default: '3.12'
+  - name: workingDirectory
+    type: string
+    default: '.'
+  - name: lintEnabled
+    type: boolean
+    default: true
+  - name: testEnabled
+    type: boolean
+    default: true
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+  - stage: Lint
+    condition: eq('${{ parameters.lintEnabled }}', true)
+    jobs:
+      - job: Lint
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '${{ parameters.pythonVersion }}'
+          - script: |
+              pip install ruff
+              ruff check ${{ parameters.workingDirectory }}
+            displayName: 'Run ruff linter'
+
+  - stage: Test
+    condition: eq('${{ parameters.testEnabled }}', true)
+    jobs:
+      - job: UnitTests
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '${{ parameters.pythonVersion }}'
+          - script: |
+              pip install -e ".[dev]"
+              pytest ${{ parameters.workingDirectory }}/tests \
+                --junitxml=test-results.xml \
+                -v
+            displayName: 'Run unit tests'
+          - task: PublishTestResults@2
+            inputs:
+              testResultsFormat: 'JUnit'
+              testResultsFiles: 'test-results.xml'
+            condition: always()
+
+  - stage: Build
+    dependsOn:
+      - Lint
+      - Test
+    jobs:
+      - job: Build
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '${{ parameters.pythonVersion }}'
+          - script: |
+              pip install build
+              python -m build ${{ parameters.workingDirectory }}
+            displayName: 'Build package'
+          - publish: ${{ parameters.workingDirectory }}/dist
+            artifact: 'python-package'

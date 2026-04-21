@@ -1,0 +1,78 @@
+# CD Pipeline — Deploy to Dev / Staging / Prod
+# Parameterized multi-stage deploy with approval gates.
+# Usage: Override parameters for your service and environment configs.
+
+trigger:
+  branches:
+    include:
+      - main
+
+parameters:
+  - name: serviceName
+    type: string
+  - name: deployDev
+    type: boolean
+    default: true
+  - name: deployStaging
+    type: boolean
+    default: true
+  - name: deployProd
+    type: boolean
+    default: true
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+  - stage: Deploy_Dev
+    condition: eq('${{ parameters.deployDev }}', true)
+    jobs:
+      - deployment: DeployDev
+        environment: 'dev'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - script: |
+                    echo "Deploying ${{ parameters.serviceName }} to Dev"
+                    # Replace with actual deploy commands
+                  displayName: 'Deploy to Dev'
+                - script: |
+                    echo "Running smoke tests on Dev"
+                    # Replace with actual smoke test commands
+                  displayName: 'Smoke test'
+
+  - stage: Deploy_Staging
+    dependsOn: Deploy_Dev
+    condition: and(succeeded(), eq('${{ parameters.deployStaging }}', true))
+    jobs:
+      - deployment: DeployStaging
+        environment: 'staging'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - script: |
+                    echo "Deploying ${{ parameters.serviceName }} to Staging"
+                  displayName: 'Deploy to Staging'
+                - script: |
+                    echo "Running integration tests on Staging"
+                  displayName: 'Integration test'
+
+  - stage: Deploy_Prod
+    dependsOn: Deploy_Staging
+    condition: and(succeeded(), eq('${{ parameters.deployProd }}', true))
+    jobs:
+      - deployment: DeployProd
+        # Approval gate configured on the 'prod' environment in Azure DevOps
+        environment: 'prod'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - script: |
+                    echo "Deploying ${{ parameters.serviceName }} to Production"
+                  displayName: 'Deploy to Production'
+                - script: |
+                    echo "Running production smoke tests"
+                  displayName: 'Production smoke test'

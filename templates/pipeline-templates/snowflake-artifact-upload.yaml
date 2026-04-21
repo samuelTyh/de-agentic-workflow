@@ -1,0 +1,99 @@
+# Snowflake Artifact Upload Pipeline
+# Builds Snowpark Python packages (.whl) and uploads to a Snowflake stage.
+# Usage: Set snowflakeStage and packageDirectory for your Snowpark project.
+
+trigger: none
+
+pr: none
+
+parameters:
+  - name: pythonVersion
+    type: string
+    default: '3.12'
+  - name: packageDirectory
+    type: string
+    default: '.'
+  - name: snowflakeStage
+    type: string
+    displayName: 'Snowflake stage for artifact upload (e.g., @my_db.my_schema.my_stage)'
+  - name: snowflakeConnection
+    type: string
+    displayName: 'Azure DevOps service connection name for Snowflake'
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+  - stage: Test
+    jobs:
+      - job: Test
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '${{ parameters.pythonVersion }}'
+          - script: |
+              cd ${{ parameters.packageDirectory }}
+              pip install -e ".[dev]"
+              pytest tests/ --junitxml=test-results.xml -v
+            displayName: 'Run Snowpark tests'
+          - task: PublishTestResults@2
+            inputs:
+              testResultsFormat: 'JUnit'
+              testResultsFiles: '**/test-results.xml'
+            condition: always()
+
+  - stage: Build
+    dependsOn: Test
+    jobs:
+      - job: BuildWheel
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '${{ parameters.pythonVersion }}'
+          - script: |
+              cd ${{ parameters.packageDirectory }}
+              pip install build
+              python -m build --wheel
+            displayName: 'Build .whl package'
+          - publish: ${{ parameters.packageDirectory }}/dist
+            artifact: 'snowpark-package'
+
+  - stage: Upload
+    dependsOn: Build
+    jobs:
+      - job: UploadToStage
+        steps:
+          - download: current
+            artifact: 'snowpark-package'
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '${{ parameters.pythonVersion }}'
+          - script: |
+              pip install snowflake-connector-python
+              python -c "
+              import snowflake.connector
+              import os, glob
+
+              conn = snowflake.connector.connect(
+                  account=os.environ['SNOWFLAKE_ACCOUNT'],
+                  user=os.environ['SNOWFLAKE_USER'],
+                  password=os.environ['SNOWFLAKE_PASSWORD'],
+                  role=os.environ['SNOWFLAKE_ROLE'],
+                  warehouse=os.environ['SNOWFLAKE_WAREHOUSE']
+              )
+              cursor = conn.cursor()
+              for whl in glob.glob('$(Pipeline.Workspace)/snowpark-package/*.whl'):
+                  cursor.execute(
+                      'PUT file://' + whl + ' ${{ parameters.snowflakeStage }} AUTO_COMPRESS=FALSE OVERWRITE=TRUE'
+                  )
+                  print(f'Uploaded: {whl}')
+              cursor.close()
+              conn.close()
+              "
+            displayName: 'Upload .whl to Snowflake stage'
+            env:
+              SNOWFLAKE_ACCOUNT: $(SNOWFLAKE_ACCOUNT)
+              SNOWFLAKE_USER: $(SNOWFLAKE_USER)
+              SNOWFLAKE_PASSWORD: $(SNOWFLAKE_PASSWORD)
+              SNOWFLAKE_ROLE: $(SNOWFLAKE_ROLE)
+              SNOWFLAKE_WAREHOUSE: $(SNOWFLAKE_WAREHOUSE)

@@ -1,0 +1,130 @@
+# Git Change Detection Deploy Pipeline
+# Detects which paths changed in the commit and deploys only affected components.
+# Supports: Airflow DAGs, Snowflake SQL, Snowpark artifacts.
+# Usage: Configure pathMappings for your repo layout.
+
+trigger:
+  branches:
+    include:
+      - main
+
+parameters:
+  - name: pythonVersion
+    type: string
+    default: '3.12'
+  - name: dagPath
+    type: string
+    default: 'dags/'
+    displayName: 'Path prefix for Airflow DAGs'
+  - name: sqlPath
+    type: string
+    default: 'sql/'
+    displayName: 'Path prefix for Snowflake SQL scripts'
+  - name: snowparkPath
+    type: string
+    default: 'snowpark/'
+    displayName: 'Path prefix for Snowpark packages'
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+  - stage: Detect_Changes
+    jobs:
+      - job: DetectChanges
+        steps:
+          - checkout: self
+            fetchDepth: 2
+          - script: |
+              # Detect changed files between HEAD and previous commit
+              CHANGED=$(git diff --name-only HEAD~1 HEAD)
+              echo "Changed files:"
+              echo "$CHANGED"
+
+              # Determine which components are affected
+              DEPLOY_DAGS=false
+              DEPLOY_SQL=false
+              DEPLOY_SNOWPARK=false
+
+              echo "$CHANGED" | grep -q "^${{ parameters.dagPath }}" && DEPLOY_DAGS=true
+              echo "$CHANGED" | grep -q "^${{ parameters.sqlPath }}" && DEPLOY_SQL=true
+              echo "$CHANGED" | grep -q "^${{ parameters.snowparkPath }}" && DEPLOY_SNOWPARK=true
+
+              echo "##vso[task.setvariable variable=deployDags;isOutput=true]$DEPLOY_DAGS"
+              echo "##vso[task.setvariable variable=deploySql;isOutput=true]$DEPLOY_SQL"
+              echo "##vso[task.setvariable variable=deploySnowpark;isOutput=true]$DEPLOY_SNOWPARK"
+
+              echo "Deploy DAGs: $DEPLOY_DAGS"
+              echo "Deploy SQL: $DEPLOY_SQL"
+              echo "Deploy Snowpark: $DEPLOY_SNOWPARK"
+            displayName: 'Detect changed paths'
+            name: changes
+
+  - stage: Deploy_DAGs
+    dependsOn: Detect_Changes
+    condition: eq(dependencies.Detect_Changes.outputs['DetectChanges.changes.deployDags'], 'true')
+    jobs:
+      - deployment: DeployDAGs
+        environment: 'airflow'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - script: |
+                    echo "Deploying changed DAGs from ${{ parameters.dagPath }}"
+                    # Replace with actual DAG sync command
+                    # e.g., rsync, gsutil cp, aws s3 sync, or Airflow API
+                  displayName: 'Sync DAGs'
+
+  - stage: Deploy_SQL
+    dependsOn: Detect_Changes
+    condition: eq(dependencies.Detect_Changes.outputs['DetectChanges.changes.deploySql'], 'true')
+    jobs:
+      - deployment: DeploySQL
+        environment: 'snowflake'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: UsePythonVersion@0
+                  inputs:
+                    versionSpec: '${{ parameters.pythonVersion }}'
+                - script: |
+                    echo "Running changed SQL scripts from ${{ parameters.sqlPath }}"
+                    pip install snowflake-connector-python
+                    # Replace with actual SQL execution logic
+                    # e.g., iterate changed .sql files and execute against Snowflake
+                  displayName: 'Execute SQL changes'
+                  env:
+                    SNOWFLAKE_ACCOUNT: $(SNOWFLAKE_ACCOUNT)
+                    SNOWFLAKE_USER: $(SNOWFLAKE_USER)
+                    SNOWFLAKE_PASSWORD: $(SNOWFLAKE_PASSWORD)
+                    SNOWFLAKE_ROLE: $(SNOWFLAKE_ROLE)
+                    SNOWFLAKE_WAREHOUSE: $(SNOWFLAKE_WAREHOUSE)
+
+  - stage: Deploy_Snowpark
+    dependsOn: Detect_Changes
+    condition: eq(dependencies.Detect_Changes.outputs['DetectChanges.changes.deploySnowpark'], 'true')
+    jobs:
+      - deployment: DeploySnowpark
+        environment: 'snowflake'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: UsePythonVersion@0
+                  inputs:
+                    versionSpec: '${{ parameters.pythonVersion }}'
+                - script: |
+                    echo "Building and uploading changed Snowpark packages from ${{ parameters.snowparkPath }}"
+                    cd ${{ parameters.snowparkPath }}
+                    pip install build
+                    python -m build --wheel
+                    # Replace with actual stage upload logic
+                  displayName: 'Build and upload Snowpark artifacts'
+                  env:
+                    SNOWFLAKE_ACCOUNT: $(SNOWFLAKE_ACCOUNT)
+                    SNOWFLAKE_USER: $(SNOWFLAKE_USER)
+                    SNOWFLAKE_PASSWORD: $(SNOWFLAKE_PASSWORD)
+                    SNOWFLAKE_ROLE: $(SNOWFLAKE_ROLE)
+                    SNOWFLAKE_WAREHOUSE: $(SNOWFLAKE_WAREHOUSE)

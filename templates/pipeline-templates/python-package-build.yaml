@@ -1,0 +1,68 @@
+# Python Package Build Pipeline
+# Builds and publishes internal Python packages to Azure Artifacts feed.
+# Usage: Set feedName and packageDirectory for your package.
+
+trigger: none
+
+pr: none
+
+parameters:
+  - name: pythonVersion
+    type: string
+    default: '3.12'
+  - name: packageDirectory
+    type: string
+    default: '.'
+  - name: feedName
+    type: string
+    displayName: 'Azure Artifacts feed name'
+  - name: runTests
+    type: boolean
+    default: true
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+  - stage: Test
+    condition: eq('${{ parameters.runTests }}', true)
+    jobs:
+      - job: Test
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '${{ parameters.pythonVersion }}'
+          - script: |
+              cd ${{ parameters.packageDirectory }}
+              pip install -e ".[dev]"
+              pytest tests/ --junitxml=test-results.xml -v
+            displayName: 'Run tests'
+          - task: PublishTestResults@2
+            inputs:
+              testResultsFormat: 'JUnit'
+              testResultsFiles: '**/test-results.xml'
+            condition: always()
+
+  - stage: Build_Publish
+    dependsOn: Test
+    condition: or(succeeded(), eq('${{ parameters.runTests }}', false))
+    jobs:
+      - job: BuildPublish
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '${{ parameters.pythonVersion }}'
+          - script: |
+              cd ${{ parameters.packageDirectory }}
+              pip install build twine
+              python -m build
+            displayName: 'Build package'
+          - task: TwineAuthenticate@1
+            inputs:
+              artifactFeed: '${{ parameters.feedName }}'
+          - script: |
+              twine upload \
+                -r ${{ parameters.feedName }} \
+                --config-file $(PYPIRC_PATH) \
+                ${{ parameters.packageDirectory }}/dist/*
+            displayName: 'Publish to Azure Artifacts'
