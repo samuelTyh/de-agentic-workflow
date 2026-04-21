@@ -63,9 +63,12 @@ Subject ≤ 50 chars, imperative mood, no period. For complex changes, add a bod
 ### PR Creation
 When creating a PR:
 1. Verify target branch per repo strategy
-2. Link to the related Jira ticket in the PR body (via PMO agent)
-3. Auto-invoke the Code Review Agent to generate a first-pass review comment
-4. Do NOT auto-approve — humans make the final merge decision
+2. Populate the PR body using the repo's PR template:
+   - GitHub: `.github/pull_request_template.md`
+   - Azure DevOps: `.azuredevops/pull_request_template.md`
+3. Link to the related Jira ticket in the PR body (via PMO agent)
+4. Auto-invoke the Code Review Agent to generate a first-pass review comment
+5. Do NOT auto-approve — humans make the final merge decision
 
 ### Merge Hygiene
 - Merged feature branches are deleted after merge
