@@ -1,111 +1,230 @@
-# Phase 4: Code Objects Migration
+# Phase 2: Services Migration
 
-Migrate stored procedures, UDFs, tasks, and streams to account B.
+Migrate DS services (Airflow, Snowpark procedures, Streamlit apps, Forecast API), recreate monitoring, and rotate credentials. Tickets: [TVF-11](https://enpal.atlassian.net/browse/TVF-11), [TVF-15](https://enpal.atlassian.net/browse/TVF-15), [TVF-139](https://enpal.atlassian.net/browse/TVF-139), [TVF-140](https://enpal.atlassian.net/browse/TVF-140), [TVF-142](https://enpal.atlassian.net/browse/TVF-142), [TVF-143](https://enpal.atlassian.net/browse/TVF-143).
 
-## Stored Procedures and UDFs
+## Part A: Rotate Service User KPA Keys (TVF-143)
 
-### Step 1: Extract Definitions from Account A
+Runs in parallel with service deployment — service users must exist on B with fresh keys before their consumers can target B.
 
-```sql
--- Get procedure definitions
-SELECT
-    procedure_name,
-    procedure_schema,
-    procedure_catalog,
-    argument_signature,
-    procedure_definition,
-    procedure_language
-FROM account_a.information_schema.procedures
-WHERE procedure_schema NOT IN ('INFORMATION_SCHEMA');
+### Service Users to Rotate
 
--- Get UDF definitions
-SELECT
-    function_name,
-    function_schema,
-    function_catalog,
-    argument_signature,
-    function_definition,
-    function_language
-FROM account_a.information_schema.functions
-WHERE function_schema NOT IN ('INFORMATION_SCHEMA')
-  AND function_owner IS NOT NULL;
-```
+- `airflow_service_user` — used by `vpp-airflow`
+- `forecast_api_service_user` — used by Forecast API
+- `snowddl` bot — used by SnowDDL CI/CD
+- Any others (e.g., dbt when activated)
 
-### Step 2: Review and Update
+### Steps Per Service User
 
-Before recreating on account B:
+1. Generate fresh RSA key pair on a secure machine
+2. Register public key on Account B user (via SnowDDL `user.yaml` `rsa_public_key` entry or transitional SQL)
+3. Store private key base64-encoded in Azure Key Vault:
+   - Use new secret names (e.g., `snowddl-airflow-key-accountb`) OR
+   - Rotate existing names with consumer coordination
+4. Update all CI/CD variable groups / pipeline references to the new secret
+5. Validate `snow connection test` succeeds for the service user
 
-1. **Review each definition** — is the logic still correct? Any improvements?
-2. **Update references** — database names, schema names, role references that differ on account B
-3. **Update grants** — new RBAC model means different role names
-4. **Snowpark procedures** — rebuild and upload .whl packages to account B stage (see `templates/pipeline-templates/snowflake-artifact-upload.yaml`)
+### Parallel Window
 
-### Step 3: Deploy to Account B
+- Keep A-side keys valid during the parallel window
+- Revoke A-side keys after successful cutover
 
-**Via snowDDL (if supported):**
-Add procedure/UDF definitions to your snowDDL config.
+### Part A Exit Criteria
 
-**Via SQL scripts:**
-```sql
-CREATE OR REPLACE PROCEDURE <database>.<schema>.<proc_name>(...)
-RETURNS ...
-LANGUAGE ...
-AS
-$$
-<procedure_definition>
-$$;
-```
+- [ ] Every service user in B authenticates successfully from its production consumer
+- [ ] All private keys stored in Azure Key Vault
+- [ ] CI/CD pipelines reference the new secret names
+- [ ] Rotation plan documented: which keys revoke when
 
-**Via Snowpark:**
-```sql
-CREATE OR REPLACE PROCEDURE <database>.<schema>.<proc_name>(...)
-RETURNS ...
-LANGUAGE PYTHON
-RUNTIME_VERSION = '3.12'
-PACKAGES = ('snowflake-snowpark-python')
-IMPORTS = ('@<stage>/<package>.whl')
-HANDLER = '<module>.<function>';
-```
+---
 
-## Tasks
+## Part B: Airflow — Re-point to Account B (TVF-11)
 
-### Step 1: Extract Task Definitions
+### Steps
 
-```sql
-SHOW TASKS IN ACCOUNT;
-SELECT GET_DDL('TASK', '<database>.<schema>.<task_name>');
-```
+1. **Add Account B Snowflake connection to Airflow:**
+   ```bash
+   astro run airflow connections add 'snowflake_account_b' \
+       --conn-type 'snowflake' \
+       --conn-host "$SNOWFLAKE_ACCOUNT_B" \
+       --conn-login 'airflow_service_user' \
+       --conn-password "$KPA_PRIVATE_KEY" \
+       --conn-schema 'PUBLIC' \
+       --conn-extra '{"role": "'$AIRFLOW_ROLE_B'", "warehouse": "'$AIRFLOW_WH_B'", "authenticator": "SNOWFLAKE_JWT", "private_key_content": "<key>"}'
+   ```
 
-### Step 2: Recreate on Account B
+2. **Test in staging:** Flip one or two DAGs from `vpp-airflow` to a scratch DB in B, run a full day, diff results against A (see Rehearsal #1 in `validation.md`)
 
-Update object references (database, schema, warehouse, role) and create in dependency order (root tasks first):
+3. **Re-test every DAG end-to-end in a staging environment before production cutover**
 
-```sql
--- Create but keep suspended
-CREATE OR REPLACE TASK <database>.<schema>.<task_name>
-    WAREHOUSE = '<account_b_warehouse>'
-    SCHEDULE = '<schedule>'
-AS
-<task_sql>;
+### DAG Migration Approach
 
--- Do NOT resume until validation is complete
-```
+Two patterns — use what fits each DAG:
 
-## Streams
+- **Connection ID swap:** Change `snowflake_default` to `snowflake_account_b` in the DAG. Simpler, no code duplication.
+- **Duplicate DAGs:** Copy the DAG with a different `dag_id`, point the copy at B, run both in parallel. Better rollback, more overhead.
 
-Streams track changes on tables. They cannot be migrated — recreate on account B after base tables exist.
+Recommend duplicating for critical DAGs during rehearsals, swap for the rest at cutover.
 
-```sql
-CREATE OR REPLACE STREAM <database>.<schema>.<stream_name>
-ON TABLE <database>.<schema>.<table_name>
-SHOW_INITIAL_ROWS = TRUE;  -- capture existing rows on first consumption
-```
+### Part B Exit Criteria
 
-## Checklist
+- [ ] Account B Snowflake connection configured in Airflow
+- [ ] Every DAG re-tested end-to-end in staging against B
+- [ ] KPA key rotated and validated for `airflow_service_user`
 
-- [ ] All stored procedures extracted, reviewed, and deployed to account B
-- [ ] All UDFs extracted, reviewed, and deployed to account B
-- [ ] Snowpark packages rebuilt and uploaded to account B stages
-- [ ] All tasks created (suspended) on account B
-- [ ] All streams created on account B
-- [ ] Grants applied to all code objects per new RBAC model
+---
+
+## Part C: Snowpark Stored Procedures — `vpp-data-warehouse` (TVF-139)
+
+Deploy all sprocs under `vpp-data-warehouse/pipelines/prod/procedures/*` to Account B.
+
+### Scope
+
+Covers:
+- **Forecast procs:** `tso_*`, `system_*`, `pool_*`, `household_*`
+- **feature_store procs:** `update_vpp_system_pools`
+- **Validation procs**
+
+### Steps
+
+1. **Update deployment scripts** to target B:
+   - New account locator (`SNOWFLAKE_ACCOUNT_B`)
+   - Service user (`airflow_service_user` or dedicated sproc service user)
+   - Role and warehouse from B's SnowDDL config
+
+2. **Build and upload Snowpark packages:**
+   - Use the `snowflake-artifact-upload.yaml` Azure DevOps template (in `templates/pipeline-templates/`)
+   - Upload `.whl` files to Account B stages
+
+3. **Create procedures on B:**
+   ```sql
+   CREATE OR REPLACE PROCEDURE <db>.<schema>.<proc_name>(...)
+   RETURNS ...
+   LANGUAGE PYTHON
+   RUNTIME_VERSION = '3.12'
+   PACKAGES = ('snowflake-snowpark-python')
+   IMPORTS = ('@<stage>/<package>.whl')
+   HANDLER = '<module>.<function>';
+   ```
+
+4. **Smoke-test each proc:**
+   - Against the replicated DS-owned schemas in B (read-only replica), OR
+   - Against a scratch DB with a representative data sample
+   - At least one sample proc per forecast family (TSO, system, pool, household)
+
+5. **Update CI/CD pipeline** for `vpp-data-warehouse` to deploy to B on merge
+
+### Part C Exit Criteria
+
+- [ ] All sprocs exist and are callable in Account B
+- [ ] CI/CD pipeline for `vpp-data-warehouse` deploys to B on merge
+- [ ] Smoke-test output from B matches A within tolerance for at least one sample per forecast family
+
+---
+
+## Part D: Snowpark Apps + Streamlit — `vpp-snowpark-apps` (TVF-15 + TVF-140)
+
+Migrate `vpp-snowpark-apps` CI/CD pipelines and redeploy Streamlit apps.
+
+### CI/CD Pipeline Migration (TVF-15)
+
+1. Update all CI/CD pipelines in `vpp-snowpark-apps` to target Account B
+2. Update pipeline variable groups / Azure Key Vault references:
+   - Account B service users
+   - Account B warehouses
+   - Account B KPA keys (from Part A)
+3. Covers deployment of:
+   - Snowpark sprocs (`apps/snowpark/*`)
+   - Streamlit apps (`apps/streamlit/*`)
+4. Verify deploys from `main` / `dev` branches land in B automatically
+5. Label old A-facing pipelines as legacy or decommission
+
+### Streamlit Apps Migration (TVF-140)
+
+1. Redeploy Streamlit apps under `vpp-snowpark-apps/apps/streamlit/*` to Account B
+2. Update connection strings, service users, role references
+3. **Shadow mode:** Apps live in B pointing at replica data; users can access both A and B copies during parallel window
+4. Collect feedback from stakeholders accessing B-side apps during shadow period
+5. Draft cutover checklist item: flip user-facing URLs/links on cutover weekend
+
+### Part D Exit Criteria
+
+- [ ] Every CI/CD pipeline in `vpp-snowpark-apps` green against Account B
+- [ ] Deploys from `main` / `dev` branches land in B automatically
+- [ ] All Streamlit apps live and functional in B against replicated/shared data
+- [ ] Shadow-period stakeholder sign-off recorded
+- [ ] URL flip checklist item added to cutover runbook
+
+---
+
+## Part E: Forecast API (TVF-11)
+
+### Steps
+
+1. **Set up `forecast_api_service_user` in B** with fresh KPA key (Part A)
+2. **Update Forecast API config** to target B:
+   - Account locator: `$SNOWFLAKE_ACCOUNT_B`
+   - Role: `FORECAST_API_ROLE` (or as defined in SnowDDL)
+   - Warehouse: dedicated warehouse per SnowDDL config
+3. **Shadow mode validation:**
+   - Run production traffic against B in shadow
+   - Compare responses against A
+4. **Flip to B** at cutover time
+
+### Part E Exit Criteria
+
+- [ ] Forecast API config updated to target B
+- [ ] `forecast_api_service_user` authenticated with KPA key
+- [ ] Shadow validation complete — responses match A within tolerance
+- [ ] Flip step added to cutover runbook
+
+---
+
+## Part F: Monitoring & Alerting (TVF-142)
+
+### Resource Monitors
+
+Recreate resource monitors from A in B via SnowDDL or admin scripts. Define credit limits per warehouse family:
+- DE_ETL warehouses
+- DE_ANALYTICS warehouses
+- REPLICATION_REFRESH warehouse (new for B, credit-alert it separately)
+- Snowpark procedure warehouses
+- Forecast API warehouse
+
+### Alerts
+
+Recreate in B:
+- Snowflake task-failure alerts
+- Streams-to-lambda-style monitoring used in A
+- Credit alerts per warehouse family
+- Credit alert for replication refresh warehouse (new cost line item specific to B)
+
+### External Monitoring
+
+Re-target any external integrations at Account B:
+- Datadog Snowflake integration (future: aligns with team's Datadog migration plan)
+- Grafana dashboards
+- New Relic (if used)
+
+### Ownership & Escalation
+
+Document in the runbook:
+- Alert name → owner mapping
+- Response procedures per alert type
+- Escalation path per severity
+
+### Part F Exit Criteria
+
+- [ ] All monitoring in A has an equivalent configured in B
+- [ ] Test alerts fire successfully in B
+- [ ] Alert ownership and response procedures documented
+- [ ] Credit alerts cover the replication refresh warehouse
+
+---
+
+## Phase 2 Services Migration Overall Exit Criteria
+
+- [ ] All Parts A-F exit criteria met
+- [ ] Migration tracker shows all services as "Migrated" or "Validated"
+- [ ] Every service runs end-to-end against Account B in staging
+- [ ] All KPA keys rotated and stored in Azure Key Vault
+- [ ] Ready for Rehearsal #2 (see `validation.md`)

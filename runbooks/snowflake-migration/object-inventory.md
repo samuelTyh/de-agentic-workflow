@@ -1,88 +1,89 @@
-# Phase 1: Object Inventory
+# Phase 0: Migration Dependency Inventory
 
-Catalog all objects on account A to determine migration scope.
+Build a single source-of-truth tracker listing every dependency that needs migration or coordination. Ticket: [TVF-133](https://enpal.atlassian.net/browse/TVF-133).
 
-## Step 1: Database and Schema Inventory
+## Tracker Location
 
-```sql
--- List all databases
-SHOW DATABASES;
+Notion or Confluence — agree with team, then link from [TVF-7](https://enpal.atlassian.net/browse/TVF-7). Reviewed weekly until Phase 4 closes.
 
--- List all schemas in each database
-SHOW SCHEMAS IN DATABASE <database_name>;
-```
+## Tracker Schema
 
-## Step 2: Table Inventory
+Each entry should capture:
 
-```sql
-SELECT
-    table_catalog AS database_name,
-    table_schema,
-    table_name,
-    table_type,
-    row_count,
-    bytes,
-    ROUND(bytes / 1024 / 1024 / 1024, 2) AS size_gb,
-    created,
-    last_altered
-FROM account_a.information_schema.tables
-WHERE table_schema NOT IN ('INFORMATION_SCHEMA')
-ORDER BY bytes DESC;
-```
+| Column | Description |
+|--------|-------------|
+| Name | Object/dependency name |
+| Category | See categories below |
+| Owner | Person or team responsible |
+| Source | Account A location (or external provider) |
+| Target | Account B location, or "stays in A (shared)" |
+| Status | Not started / In progress / Migrated / Validated |
+| Blocker notes | Open dependencies, external waits |
+| ETA | Target completion date |
 
-## Step 3: View Inventory
+## Categories to Capture
 
-```sql
-SELECT
-    table_catalog AS database_name,
-    table_schema,
-    table_name,
-    view_definition,
-    is_secure
-FROM account_a.information_schema.views
-WHERE table_schema NOT IN ('INFORMATION_SCHEMA')
-ORDER BY table_catalog, table_schema, table_name;
-```
+### Storage Integrations
+Inbound + outbound, Azure + AWS. Source locations:
+- `vpp-data-warehouse/ingestion/storage_integrations/*`
+- `vpp-data-warehouse/export/storage_integrations/*`
 
-## Step 4: Stored Procedures and UDFs
+### Inbound Data Shares
+- **BI** — `ENPAL_COMPUTE_PROD_SHARE` from main BI Snowflake account (contact: Alex Sutcliffe)
+- **Legacy VPP IoT** — `raw/*`, `processed.V2_*`, `master_data_*`, `DAM` (stays in A, shared into B)
+- **Meteomatics** — weather data (external provider, needs coordination to re-share to B locator)
 
-```sql
-SHOW PROCEDURES IN ACCOUNT;
-SHOW USER FUNCTIONS IN ACCOUNT;
-```
+### Outbound Data Shares
+- **Flexa** — forecast export (currently `export/storage_integrations/flexa` blob sync; confirm whether to switch to Snowflake share)
+- **Main BI** — any forecasts/KPIs published back to BI (confirm direction with BI team)
+- Others — enumerate as discovered
 
-## Step 5: Tasks and Streams
+### Snowpark Stored Procedures
+- `vpp-data-warehouse/pipelines/prod/procedures/*` — forecast procs (`tso_*`, `system_*`, `pool_*`, `household_*`), feature_store procs (`update_vpp_system_pools`), validation procs
+- `vpp-snowpark-apps/apps/snowpark/*`
 
-```sql
-SHOW TASKS IN ACCOUNT;
-SHOW STREAMS IN ACCOUNT;
-```
+### Streamlit Apps
+- `vpp-snowpark-apps/apps/streamlit/*`
 
-## Step 6: Stages, Pipes, and File Formats
+### Airflow DAGs
+- `vpp-airflow/dags/*` — every DAG that touches Snowflake
 
-```sql
-SHOW STAGES IN ACCOUNT;
-SHOW PIPES IN ACCOUNT;
-SHOW FILE FORMATS IN ACCOUNT;
-```
+### Downstream Dashboards & Reports
+- Tableau dashboards
+- Streamlit apps (internal consumers)
 
-## Tracking Table
+### Service Users + KPA Keys
+Azure Key Vault entries to migrate/rotate:
+- `airflow_service_user`
+- `forecast_api_service_user`
+- `snowddl` bot
+- Any others (e.g., dbt when activated)
 
-| Database | Schema | Object Type | Object Name | Rows | Size (GB) | Migration Method | Status |
-|----------|--------|-------------|-------------|------|-----------|-----------------|--------|
-| | | | | | | export-import / re-ingest / snowDDL | |
+### Resource Monitors + Monitoring Alerts
+- Credit limits per warehouse family
+- Snowflake task-failure alerts
+- Datadog / Grafana / New Relic Snowflake integrations
 
-## Classification Rules
+## DS-Owned Schemas to Replicate
 
-| Criteria | Migration Method |
-|----------|-----------------|
-| Table > 100 GB or historical data hard to re-ingest | Export/import |
-| Table with active source pipeline | Re-ingest from source |
-| Views, materialized views | Recreate via snowDDL after base tables exist |
-| Procedures, UDFs | Migrate code (see Phase 4) |
-| Tasks, streams | Recreate on account B (see Phase 4) |
+**In scope** (will move to B via replication):
+- `feature_store`
+- `forecasts`
+- `forecast_api`
+- `model_registry`
+- `energy_timeseries_cleaning`
+- `analytics` (if applicable)
 
-## Output
+**Out of scope** (stays in A, consumed via inbound share):
+- `raw/*`
+- `processed.V2_*`
+- `master_data_*`
+- `DAM`
 
-- Completed tracking table with all objects classified
-- Jira stories created for each migration batch (use `templates/jira-ticket-templates/story.md`)
+## Phase 0 Exit Criteria
+
+- [ ] Tracker exists and is linked from [TVF-7](https://enpal.atlassian.net/browse/TVF-7)
+- [ ] First full inventory pass complete
+- [ ] All categories captured with at least one entry where applicable
+- [ ] Every entry has an owner assigned
+- [ ] Weekly review cadence established
