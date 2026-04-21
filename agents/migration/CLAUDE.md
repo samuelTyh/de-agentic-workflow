@@ -23,7 +23,7 @@ Snowflake migration specialist for account A → B transition.
 ## Key Assets
 
 - `runbooks/snowflake-migration/` — step-by-step procedures (build incrementally as migration progresses)
-- `scripts/validate-migration.py` — automated diffing between accounts
+- Snowflake MCP server (dual-account) — query both accounts directly for inventory, diffing, and validation
 
 ## Success Criteria
 
