@@ -151,6 +151,28 @@ repos:
       # dev: merge_no_ff   # add for git_flow
 ```
 
+## Step 7: Register the Scheduled Release Pipeline (one-time, admin)
+
+The repo ships with two Azure DevOps pipelines:
+
+- `azure-pipelines.yml` — PR validation (registered automatically on first PR)
+- `azure-pipelines-release.yml` — scheduled daily release cut at 22:00 UTC
+
+The **release pipeline** must be registered manually once by a repo admin so the daily cron trigger fires:
+
+1. In Azure DevOps: **Pipelines → New Pipeline**
+2. Source: Azure Repos Git → `enpal-energy-ds-agentic-workflow`
+3. Configure: **Existing Azure Pipelines YAML file**
+4. Path: `/azure-pipelines-release.yml`
+5. Save (do not Run — the schedule will trigger it)
+6. Rename the pipeline to something like `agent-workflow-dev — scheduled release` for clarity
+
+The pipeline uses `System.AccessToken` to push a feature branch and open a PR. The project build service identity needs **Contribute** permission on the repo (default — no change needed) and **Create branch** permission (also default). Branch protection still governs merges.
+
+**What it does:** every day at 22:00 UTC, if `CHANGELOG.md` has content under `[Unreleased]`, the pipeline opens a PR that moves that content into a new dated section. A maintainer reviews and merges the PR per normal branch policy.
+
+**What it does NOT do:** merge the release PR automatically. Human approval is always required.
+
 ## Verify Setup
 
 After completing all steps, start a Claude Code session in this repo and verify:
