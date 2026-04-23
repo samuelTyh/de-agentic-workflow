@@ -40,9 +40,11 @@ once extracted in a follow-up.
 - PR template checklist item requiring a CHANGELOG update for user-facing changes
 - README link to CHANGELOG under Docs & References
 - Pipeline TODO to enforce CHANGELOG updates via CI (to be implemented in a follow-up)
-- Scheduled release-cut pipeline (`azure-pipelines-release.yml`) — runs daily
-  at 22:00 UTC, opens a PR that moves `[Unreleased]` content into a new dated
-  section; human approves the PR per normal branch policy
+- Scheduled release-cut pipeline (`azure-pipelines-release.yml`) — runs at
+  18:00 UTC Monday through Thursday, opens a PR that moves `[Unreleased]`
+  content into a new dated section; human approves the PR per normal branch
+  policy. Friday through Sunday are skipped — anything landing in that
+  window is swept up in Monday's cut.
 - `scripts/cut_release.py` — helper that implements the CHANGELOG rewrite;
   usable locally via `--dry-run` and `--date` flags
 - Setup-guide step documenting the one-time pipeline registration

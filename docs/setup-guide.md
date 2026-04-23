@@ -156,7 +156,7 @@ repos:
 The repo ships with two Azure DevOps pipelines:
 
 - `azure-pipelines.yml` — PR validation (registered automatically on first PR)
-- `azure-pipelines-release.yml` — scheduled daily release cut at 22:00 UTC
+- `azure-pipelines-release.yml` — scheduled release cut at 18:00 UTC, Monday through Thursday
 
 The **release pipeline** must be registered manually once by a repo admin so the daily cron trigger fires:
 
@@ -169,7 +169,7 @@ The **release pipeline** must be registered manually once by a repo admin so the
 
 The pipeline uses `System.AccessToken` to push a feature branch and open a PR. The project build service identity needs **Contribute** permission on the repo (default — no change needed) and **Create branch** permission (also default). Branch protection still governs merges.
 
-**What it does:** every day at 22:00 UTC, if `CHANGELOG.md` has content under `[Unreleased]`, the pipeline opens a PR that moves that content into a new dated section. A maintainer reviews and merges the PR per normal branch policy.
+**What it does:** at 18:00 UTC on Monday–Thursday, if `CHANGELOG.md` has content under `[Unreleased]`, the pipeline opens a PR that moves that content into a new dated section. A maintainer reviews and merges the PR per normal branch policy. Friday through Sunday are intentionally skipped — anything that lands in that window is swept up in Monday's cut.
 
 **What it does NOT do:** merge the release PR automatically. Human approval is always required.
 
