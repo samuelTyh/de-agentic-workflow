@@ -95,7 +95,12 @@ stages:
         displayName: 'Enforce CHANGELOG update'
         steps:
           - checkout: self
-            # Need the target branch so we can diff against it.
+            # fetchDepth: 0 gives us full history so the diff can reach
+            # the merge base with the target branch.
+            # persistCredentials: true keeps the System.AccessToken-based
+            # auth configured so subsequent `git fetch` calls work without
+            # prompting for a password.
+            persistCredentials: true
             fetchDepth: 0
 
           - script: |
