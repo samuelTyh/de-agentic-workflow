@@ -21,7 +21,7 @@ parameters:
     displayName: 'Azure DevOps service connection name for Snowflake'
 
 pool:
-  vmImage: 'ubuntu-latest'
+  vmImage: 'ubuntu-24.04'
 
 stages:
   - stage: Test

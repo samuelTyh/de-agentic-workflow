@@ -21,7 +21,7 @@ parameters:
     default: true
 
 pool:
-  vmImage: 'ubuntu-latest'
+  vmImage: 'ubuntu-24.04'
 
 stages:
   - stage: Deploy_Dev

@@ -1,0 +1,56 @@
+# Markdown lint rules for agent-workflow-dev.
+#
+# Goal: catch structural issues (broken links, inconsistent heading levels,
+# multiple top-level headings) without forcing stylistic rewrites of the
+# existing runbooks and specs.
+#
+# Style rules that cause broad noise across existing docs are disabled below
+# with a rationale. Tighten these as the team decides what's worth enforcing.
+#
+# Rule reference: https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md
+
+default: true
+
+# --- Disabled: stylistic blank-line rules ---
+# Existing runbooks, specs, and agent CLAUDE.md files do not uniformly add
+# blank lines around lists/headings/fences. Enforcing this retroactively
+# would require rewriting 30+ files for no structural benefit.
+MD022: false  # blanks-around-headings
+MD031: false  # blanks-around-fences
+MD032: false  # blanks-around-lists
+
+# --- Disabled: long lines ---
+# Runbooks contain wide tables and long URLs (Jira, Confluence, Miro).
+# Wrapping would hurt readability.
+MD013: false
+
+# --- Disabled: duplicate headings ---
+# Allow sibling duplicates — runbooks use "### Steps" under multiple scenarios.
+MD024:
+  siblings_only: true
+
+# --- Disabled: inline HTML ---
+# Visual-companion HTML files intentionally embed full HTML. Some tables use
+# inline HTML for alignment.
+MD033: false
+
+# --- Disabled: first-line heading ---
+# PR templates start with a comment for the author.
+MD041: false
+
+# --- Disabled: bare URLs ---
+# Runbooks reference Jira/Confluence/Miro URLs directly without link syntax.
+MD034: false
+
+# --- Disabled: emphasis as heading ---
+# Some runbooks use **Bold** as in-section labels intentionally.
+MD036: false
+
+# --- Disabled: fenced code language ---
+# Some blocks intentionally omit a language (e.g., repo tree diagrams, ADR
+# templates showing the format). Revisit if we want stricter code hygiene.
+MD040: false
+
+# --- Kept: list indent = 2 spaces ---
+MD007:
+  indent: 2

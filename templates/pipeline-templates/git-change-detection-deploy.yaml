@@ -26,7 +26,7 @@ parameters:
     displayName: 'Path prefix for Snowpark packages'
 
 pool:
-  vmImage: 'ubuntu-latest'
+  vmImage: 'ubuntu-24.04'
 
 stages:
   - stage: Detect_Changes

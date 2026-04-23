@@ -9,6 +9,9 @@ wheels/
 # Virtual environments
 .venv
 
+# Node (markdownlint-cli etc., if installed locally)
+node_modules/
+
 # Audit logs (persist locally, not in repo)
 logs/audit/*.log
 logs/audit/*.jsonl
