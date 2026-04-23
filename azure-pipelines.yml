@@ -6,18 +6,18 @@
 #   - YAML syntax: all *.yaml / *.yml files parse cleanly
 #   - JSON syntax: all *.json files parse cleanly
 #   - Markdown lint: structural style check against .markdownlint.yaml
+#   - CHANGELOG enforcement: fail if the PR does not touch CHANGELOG.md.
+#     Opt-out by including [skip-changelog] in any commit message on the PR
+#     (use sparingly — pure internal refactors, typo fixes, CI-only changes).
 #
 # TODO (future iterations):
 #   - Agent schema check — verify each agents/*/CLAUDE.md has required sections
 #     (Identity, Autonomous, Requires Approval, Forbidden, Integrations, Data Scope)
 #   - Config consistency check — every agent directory must have an entry in
 #     approval-tiers.yaml and data-boundaries.yaml, and vice versa
-#   - CHANGELOG enforcement — fail if the PR diff does not touch CHANGELOG.md
-#     under [Unreleased]. Exempt PRs labeled "no-changelog" (pure internal
-#     refactors, typo fixes) via a commit-message opt-out. This check will
-#     also be extracted as a reusable step at
-#     templates/pipeline-templates/changelog-check.yaml once the pattern is
-#     validated on this repo.
+#   - Extract the CHANGELOG check into a reusable pipeline template at
+#     templates/pipeline-templates/changelog-check.yaml so other CalVer-versioned
+#     team repos can adopt the pattern in a single include.
 
 trigger: none
 
@@ -90,3 +90,47 @@ stages:
                 --ignore .venv \
                 "**/*.md"
             displayName: 'Run markdownlint'
+
+      - job: ChangelogCheck
+        displayName: 'Enforce CHANGELOG update'
+        steps:
+          - checkout: self
+            # Need the target branch so we can diff against it.
+            fetchDepth: 0
+
+          - script: |
+              set -e
+
+              # System.PullRequest.TargetBranch is of the form "refs/heads/main" or "main"
+              # depending on pipeline context. Normalize to a bare ref name.
+              TARGET="$(System.PullRequest.TargetBranch)"
+              TARGET="${TARGET#refs/heads/}"
+              if [ -z "$TARGET" ]; then
+                echo "::error::Could not resolve target branch from System.PullRequest.TargetBranch"
+                exit 1
+              fi
+              echo "PR target branch: $TARGET"
+
+              git fetch --no-tags origin "$TARGET"
+
+              # Opt-out: any commit message in the PR range contains [skip-changelog].
+              PR_COMMITS="$(git log --format=%B "origin/$TARGET..HEAD")"
+              if echo "$PR_COMMITS" | grep -qF '[skip-changelog]'; then
+                echo "Opt-out marker [skip-changelog] found in a PR commit message — skipping CHANGELOG check."
+                exit 0
+              fi
+
+              # Use three-dot diff to get only files the PR introduces, not files
+              # main has moved ahead on since the PR branch was cut.
+              CHANGED="$(git diff --name-only "origin/$TARGET...HEAD")"
+              echo "Changed files in this PR:"
+              echo "$CHANGED" | sed 's/^/  /'
+
+              if echo "$CHANGED" | grep -qx 'CHANGELOG.md'; then
+                echo "CHANGELOG.md updated — check passed."
+                exit 0
+              fi
+
+              echo "::error::CHANGELOG.md was not updated. Add an entry under [Unreleased] describing the change, or include [skip-changelog] in a commit message if this PR is not user-facing (e.g. typo fix, pure internal refactor, CI-only tweak)."
+              exit 1
+            displayName: 'Check CHANGELOG.md is updated'

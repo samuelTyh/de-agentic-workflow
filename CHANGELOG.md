@@ -9,7 +9,11 @@ represents "the state of policies, agents, and runbooks as of that date."
 
 Every PR that introduces a user-facing change adds one or more bullets under
 `[Unreleased]` before merge. The PR template has a checklist item as a
-reminder. A maintainer cuts a dated release by renaming `[Unreleased]` to
+reminder, and CI fails PRs that don't touch `CHANGELOG.md`. Non-user-facing
+PRs (typo fixes, pure internal refactors, CI-only tweaks) can opt out by
+including `[skip-changelog]` in any commit message on the PR.
+
+A maintainer cuts a dated release by renaming `[Unreleased]` to
 `[YYYY.MM.DD]` when enough changes have accumulated (target: roughly weekly,
 or immediately after a policy-affecting change).
 
@@ -39,7 +43,8 @@ once extracted in a follow-up.
 - `CHANGELOG.md` with backfilled release history (2026-04-20 through 2026-04-23)
 - PR template checklist item requiring a CHANGELOG update for user-facing changes
 - README link to CHANGELOG under Docs & References
-- Pipeline TODO to enforce CHANGELOG updates via CI (to be implemented in a follow-up)
+- CHANGELOG enforcement CI check — fails PRs that don't touch `CHANGELOG.md`.
+  Opt-out via `[skip-changelog]` in any commit message on the PR.
 - Scheduled release-cut pipeline (`azure-pipelines-release.yml`) — runs at
   18:00 UTC Monday through Thursday, opens a PR that moves `[Unreleased]`
   content into a new dated section; human approves the PR per normal branch
