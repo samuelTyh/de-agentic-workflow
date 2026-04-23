@@ -12,6 +12,12 @@
 #     (Identity, Autonomous, Requires Approval, Forbidden, Integrations, Data Scope)
 #   - Config consistency check — every agent directory must have an entry in
 #     approval-tiers.yaml and data-boundaries.yaml, and vice versa
+#   - CHANGELOG enforcement — fail if the PR diff does not touch CHANGELOG.md
+#     under [Unreleased]. Exempt PRs labeled "no-changelog" (pure internal
+#     refactors, typo fixes) via a commit-message opt-out. This check will
+#     also be extracted as a reusable step at
+#     templates/pipeline-templates/changelog-check.yaml once the pattern is
+#     validated on this repo.
 
 trigger: none
 

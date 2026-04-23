@@ -50,4 +50,5 @@
 - [ ] Commits follow Conventional Commits
 - [ ] No credentials, connection strings, or PII in code or logs
 - [ ] Docs/runbooks updated if behavior changed
+- [ ] `CHANGELOG.md` updated under `[Unreleased]` if the change is user-facing (new/changed agent, policy, runbook, template, or workflow)
 - [ ] Linked Jira ticket reflects this work
