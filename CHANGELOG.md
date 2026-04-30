@@ -83,6 +83,23 @@ For the optional scheduled release-cut automation, also copy
   named shares, Streamlit apps, service users, monitors, and downstream dashboards.
   Refresh-inventory SQL queries retained as a maintenance section. Fixes BI contact
   to Michael Gabriel for consistency with `runbooks/snowflake-migration/README.md`.
+- Snowflake migration inventory runbook now points at
+  `snowflake-migration-tracker.xlsx` (SharePoint) as the canonical
+  source of truth, with `DS_Snowflake_Migration.xlsx` reframed as a
+  historical input. The tracker uses a flat `Inventory` sheet (one row
+  per asset across all categories) plus `External deps` and
+  `Service users & KPA` sheets. Disposition vocabulary aligned to
+  `Move to B` / `Stay in A` / `Dual-target` / `Delete` (where
+  `Stay in A` covers both "keep" and "shared into B" since the share
+  decision is tracked separately, not as a distinct disposition). Initial
+  import seeded ~440 asset rows from `DS_Snowflake_Migration.xlsx`.
+
+### Removed
+
+- `DS_Snowflake_Migration.xlsx` and `snowflake-migration-tracker.xlsx`
+  added to `.gitignore` — both workbooks live in SharePoint and stay
+  out of git. The tracker URL is the canonical link from TVF-7 and
+  TVF-133.
 
 ---
 

@@ -18,3 +18,8 @@ logs/audit/*.jsonl
 
 # Visual companion brainstorm sessions
 .superpowers/
+
+# Migration tracker workbooks live in SharePoint — keep local copies out
+# of git so binary diffs and merge conflicts don't pile up.
+snowflake-migration-tracker.xlsx
+DS_Snowflake_Migration.xlsx
