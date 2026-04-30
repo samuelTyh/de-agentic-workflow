@@ -22,6 +22,10 @@
 # fetches authenticate against Azure DevOps without prompting.
 
 parameters:
+  # Parameter values are interpolated into the shell script verbatim at
+  # template-render time. Set them as hardcoded constants in the consuming
+  # pipeline — do not source them from `variables:` or runtime expressions,
+  # since unsanitized values would land directly in the rendered script.
   - name: changelogPath
     type: string
     default: CHANGELOG.md
@@ -53,7 +57,9 @@ jobs:
           fi
           echo "PR target branch: $TARGET"
 
-          git fetch --no-tags origin "$TARGET"
+          if ! git fetch --no-tags origin "$TARGET" ; then
+            echo "::error::Could not fetch target branch '$TARGET'. Verify it exists on origin." && exit 1;
+          fi
 
           # Opt-out: any PR commit message contains the skip marker.
           PR_COMMITS="$(git log --format=%B "origin/$TARGET..HEAD")"
