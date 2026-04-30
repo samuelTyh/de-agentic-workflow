@@ -179,6 +179,7 @@ agent-workflow-dev/
 
 - [Setup guide](docs/setup-guide.md) — new user onboarding
 - [CHANGELOG](CHANGELOG.md) — policy and framework change history (CalVer)
+- [Adopting the CHANGELOG pattern](docs/adopting-changelog-pattern.md) — apply this CalVer + CI-enforced CHANGELOG to other team repos
 - [Snowflake migration runbook](runbooks/snowflake-migration/README.md) — TVF-7 playbook
 - [Pipeline operations runbook](runbooks/pipeline-ops/README.md) — Astronomer Airflow ops
 - [Incident response runbook](runbooks/incident-response/README.md) — severity levels, triage, postmortem

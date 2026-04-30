@@ -1,0 +1,78 @@
+# Changelog enforcement — Azure DevOps job template
+#
+# Drop-in CI check that fails PRs which don't touch CHANGELOG.md.
+# Opt-out: include `[skip-changelog]` in any commit message on the PR.
+#
+# Prerequisites in the consuming repo:
+#   - CHANGELOG.md exists at the repo root (or override `changelogPath`)
+#   - PR validation is configured to run this pipeline (typical: `pr:` trigger
+#     with `branches.include: [main]`)
+#
+# Usage from the consuming repo's azure-pipelines.yml:
+#
+#     stages:
+#       - stage: Lint
+#         jobs:
+#           - template: templates/pipeline-templates/changelog-check.yaml
+#             parameters:
+#               changelogPath: CHANGELOG.md      # optional, default CHANGELOG.md
+#               skipMarker: '[skip-changelog]'   # optional, default [skip-changelog]
+#
+# The job uses System.AccessToken via persistCredentials so subsequent git
+# fetches authenticate against Azure DevOps without prompting.
+
+parameters:
+  - name: changelogPath
+    type: string
+    default: CHANGELOG.md
+  - name: skipMarker
+    type: string
+    default: '[skip-changelog]'
+
+jobs:
+  - job: ChangelogCheck
+    displayName: 'Enforce CHANGELOG update'
+    steps:
+      - checkout: self
+        # fetchDepth: 0 — full history so we can diff against the merge base.
+        # persistCredentials: true — System.AccessToken stays configured for
+        # subsequent `git fetch` calls.
+        persistCredentials: true
+        fetchDepth: 0
+
+      - script: |
+          set -e
+
+          # System.PullRequest.TargetBranch is "refs/heads/<branch>" or
+          # "<branch>" depending on context — normalize to a bare ref.
+          TARGET="$(System.PullRequest.TargetBranch)"
+          TARGET="${TARGET#refs/heads/}"
+          if [ -z "$TARGET" ]; then
+            echo "::error::Could not resolve target branch from System.PullRequest.TargetBranch"
+            exit 1
+          fi
+          echo "PR target branch: $TARGET"
+
+          git fetch --no-tags origin "$TARGET"
+
+          # Opt-out: any PR commit message contains the skip marker.
+          PR_COMMITS="$(git log --format=%B "origin/$TARGET..HEAD")"
+          if echo "$PR_COMMITS" | grep -qF '${{ parameters.skipMarker }}'; then
+            echo "Opt-out marker ${{ parameters.skipMarker }} found in a PR commit message — skipping CHANGELOG check."
+            exit 0
+          fi
+
+          # Three-dot diff — only files the PR introduces, not files main has
+          # advanced on since the PR branch was cut.
+          CHANGED="$(git diff --name-only "origin/$TARGET...HEAD")"
+          echo "Changed files in this PR:"
+          echo "$CHANGED" | sed 's/^/  /'
+
+          if echo "$CHANGED" | grep -qx '${{ parameters.changelogPath }}'; then
+            echo "${{ parameters.changelogPath }} updated — check passed."
+            exit 0
+          fi
+
+          echo "::error::${{ parameters.changelogPath }} was not updated. Add an entry under [Unreleased] describing the change, or include ${{ parameters.skipMarker }} in a commit message if this PR is not user-facing (e.g. typo fix, pure internal refactor, CI-only tweak)."
+          exit 1
+        displayName: 'Check ${{ parameters.changelogPath }} is updated'

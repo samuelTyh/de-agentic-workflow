@@ -29,10 +29,16 @@ or immediately after a policy-affecting change).
 
 ## Pattern Reuse
 
-This CHANGELOG pattern is intended to be extended to other team repos that use
-CalVer. A reusable template and CI snippet will live at
-`templates/changelog-template.md` and `templates/pipeline-templates/changelog-check.yaml`
-once extracted in a follow-up.
+This CHANGELOG pattern is reusable across team repos that use CalVer. The
+extracted artifacts:
+
+- `templates/changelog-template.md` — starter `CHANGELOG.md` for a new repo
+- `templates/pipeline-templates/changelog-check.yaml` — drop-in Azure DevOps
+  job that enforces CHANGELOG updates on PRs
+- `docs/adopting-changelog-pattern.md` — copy-paste adoption guide
+
+For the optional scheduled release-cut automation, also copy
+`scripts/cut_release.py` and `azure-pipelines-release.yml`.
 
 ---
 
@@ -53,6 +59,9 @@ once extracted in a follow-up.
 - `scripts/cut_release.py` — helper that implements the CHANGELOG rewrite;
   usable locally via `--dry-run` and `--date` flags
 - Setup-guide step documenting the one-time pipeline registration
+- Reusable CHANGELOG pattern for other CalVer-versioned team repos:
+  `templates/changelog-template.md`, `templates/pipeline-templates/changelog-check.yaml`,
+  and `docs/adopting-changelog-pattern.md`
 
 ---
 
