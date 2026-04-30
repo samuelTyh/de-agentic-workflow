@@ -1,0 +1,106 @@
+# Post-merge tagging pipeline.
+#
+# Triggers on every push to main. Creates an annotated tag if the latest
+# commit message indicates a CHANGELOG release-cut (i.e. came from the
+# scheduled release-cut pipeline).
+#
+# Tag format: v<YYYYMMDD> (no separators), e.g. v20260423
+# Tag style: annotated, with the release section content from CHANGELOG.md
+# as the message body.
+#
+# This pipeline must be registered once in Azure DevOps pointing at this
+# YAML file — see docs/setup-guide.md Step 7.
+#
+# Permissions: needs Contribute on the repo (default for project build
+# service) and the ability to push tags. Branch protection on main does
+# not block tag pushes.
+
+trigger:
+  branches:
+    include:
+      - main
+
+pr: none
+
+pool:
+  vmImage: 'ubuntu-24.04'
+
+jobs:
+  - job: TagRelease
+    displayName: 'Tag release if commit cuts CHANGELOG'
+    steps:
+      - checkout: self
+        # persistCredentials: true — System.AccessToken stays configured
+        # so `git push origin <tag>` succeeds without prompting.
+        # fetchDepth: 0 — full history so we can read CHANGELOG.md and
+        # check for prior tags.
+        persistCredentials: true
+        fetchDepth: 0
+
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: '3.12'
+        displayName: 'Use Python 3.12'
+
+      - script: |
+          set -e
+
+          MSG="$(git log -1 --format=%B)"
+          echo "Latest commit message:"
+          echo "$MSG" | sed 's/^/  /'
+          echo ""
+
+          # Match `cut release YYYY.MM.DD` substring anywhere in the message.
+          # Wrapper text from squash merges (e.g. "[Merged PR ####]: ...")
+          # is tolerated. The date pattern is unique enough that false
+          # positives are unlikely.
+          VERSION="$(echo "$MSG" | grep -oE 'cut release [0-9]{4}\.[0-9]{2}\.[0-9]{2}' | head -1 | grep -oE '[0-9]{4}\.[0-9]{2}\.[0-9]{2}' || true)"
+
+          if [ -z "$VERSION" ]; then
+            echo "Latest commit is not a release-cut. Skipping."
+            echo "##vso[task.setvariable variable=SHOULD_TAG]false"
+            exit 0
+          fi
+
+          TAG="v$(echo "$VERSION" | tr -d '.')"
+          echo "Detected release version: $VERSION"
+          echo "Tag name: $TAG"
+
+          if git rev-parse --verify "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists at $(git rev-parse $TAG). Nothing to do."
+            echo "##vso[task.setvariable variable=SHOULD_TAG]false"
+            exit 0
+          fi
+
+          echo "##vso[task.setvariable variable=SHOULD_TAG]true"
+          echo "##vso[task.setvariable variable=RELEASE_VERSION]$VERSION"
+          echo "##vso[task.setvariable variable=RELEASE_TAG]$TAG"
+        displayName: 'Detect release commit'
+
+      - script: |
+          set -e
+
+          MSG_FILE="$(mktemp)"
+          if ! python scripts/extract_release_notes.py --version "$(RELEASE_VERSION)" > "$MSG_FILE" ; then
+            echo "::error::Could not extract release notes for $(RELEASE_VERSION) from CHANGELOG.md."
+            cat "$MSG_FILE"
+            rm -f "$MSG_FILE"
+            exit 1
+          fi
+
+          echo "Tag message:"
+          echo "----"
+          cat "$MSG_FILE"
+          echo "----"
+
+          git config user.name 'Azure Pipelines'
+          git config user.email 'noreply@dev.azure.com'
+
+          git tag -a "$(RELEASE_TAG)" -F "$MSG_FILE"
+          git push origin "$(RELEASE_TAG)"
+
+          rm -f "$MSG_FILE"
+
+          echo "Tagged $(RELEASE_TAG) at $(git rev-parse HEAD)"
+        displayName: 'Create and push annotated tag'
+        condition: eq(variables['SHOULD_TAG'], 'true')

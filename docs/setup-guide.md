@@ -151,27 +151,30 @@ repos:
       # dev: merge_no_ff   # add for git_flow
 ```
 
-## Step 7: Register the Scheduled Release Pipeline (one-time, admin)
+## Step 7: Register the Scheduled Pipelines (one-time, admin)
 
-The repo ships with two Azure DevOps pipelines:
+The repo ships with three Azure DevOps pipelines:
 
 - `azure-pipelines.yml` — PR validation (registered automatically on first PR)
 - `azure-pipelines-release.yml` — scheduled release cut at 18:00 UTC, Monday through Thursday
+- `azure-pipelines-tag-release.yml` — post-merge tagging on every push to `main`
 
-The **release pipeline** must be registered manually once by a repo admin so the daily cron trigger fires:
+The **release pipeline** and the **tag-release pipeline** must each be registered manually once by a repo admin. Same flow for both:
 
 1. In Azure DevOps: **Pipelines → New Pipeline**
 2. Source: Azure Repos Git → `enpal-energy-ds-agentic-workflow`
 3. Configure: **Existing Azure Pipelines YAML file**
-4. Path: `/azure-pipelines-release.yml`
-5. Save (do not Run — the schedule will trigger it)
-6. Rename the pipeline to something like `agent-workflow-dev — scheduled release` for clarity
+4. Path:
+   - `/azure-pipelines-release.yml` for the scheduled release cut
+   - `/azure-pipelines-tag-release.yml` for the post-merge tagger
+5. Save (do not Run — schedules and triggers fire automatically)
+6. Rename the pipelines to something descriptive (e.g. `agent-workflow-dev — scheduled release`, `agent-workflow-dev — tag release`)
 
-The pipeline uses `System.AccessToken` to push a feature branch and open a PR. The project build service identity needs **Contribute** permission on the repo (default — no change needed) and **Create branch** permission (also default). Branch protection still governs merges.
+The pipelines use `System.AccessToken` for git operations. The project build service identity needs **Contribute** permission on the repo (default — no change needed) and **Create branch** + **Create tag** permissions (also default). Branch protection on `main` does not block tag pushes.
 
-**What it does:** at 18:00 UTC on Monday–Thursday, if `CHANGELOG.md` has content under `[Unreleased]`, the pipeline opens a PR that moves that content into a new dated section. A maintainer reviews and merges the PR per normal branch policy. Friday through Sunday are intentionally skipped — anything that lands in that window is swept up in Monday's cut.
+**Release pipeline:** at 18:00 UTC on Monday–Thursday, if `CHANGELOG.md` has content under `[Unreleased]`, opens a PR that moves that content into a new dated section. A maintainer reviews and merges the PR per normal branch policy. Friday through Sunday are intentionally skipped — anything that lands in that window is swept up in Monday's cut. Does **not** merge the release PR automatically.
 
-**What it does NOT do:** merge the release PR automatically. Human approval is always required.
+**Tag-release pipeline:** runs on every push to `main`. If the latest commit message contains `cut release YYYY.MM.DD`, creates an annotated tag `vYYYYMMDD` (e.g. `v20260423`) at the new `main` HEAD. The tag's message body is the matching CHANGELOG section. If the commit isn't a release cut, the pipeline exits with a no-op log line. Use the tags as rollback markers (`git checkout v20260423`) and as compact references for tracking.
 
 ## Verify Setup
 

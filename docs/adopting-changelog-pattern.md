@@ -55,13 +55,23 @@ This is a reminder, not enforcement — the CI check is what enforces it.
 
 ## Step 4 (optional): Automation
 
-If you want releases cut without anyone remembering to do it manually, also adopt the scheduled release pipeline:
+If you want releases cut without anyone remembering to do it manually, also adopt the scheduled release pipeline and the post-merge tagger.
+
+### Scheduled release-cut
 
 1. Copy `scripts/cut_release.py` from `agent-workflow-dev` into your repo
 2. Copy `azure-pipelines-release.yml` from `agent-workflow-dev` into your repo, updating the `--repository` argument in the `az repos pr create` step to your repo's name
 3. Register the pipeline in Azure DevOps UI (one-time admin step — point it at the YAML file)
 
 The scheduled pipeline opens a release-cut PR; a maintainer reviews and merges per normal branch policy.
+
+### Post-merge tagging
+
+1. Copy `scripts/extract_release_notes.py` from `agent-workflow-dev` into your repo
+2. Copy `azure-pipelines-tag-release.yml` from `agent-workflow-dev` into your repo (no per-repo edits required)
+3. Register the pipeline in Azure DevOps UI (point it at the YAML file)
+
+After a release-cut PR merges, the tagger creates an annotated tag `vYYYYMMDD` at the new `main` HEAD. Use the tags as rollback markers and as compact references for tracking. The tagger is a no-op for non-release commits, so it's safe to run on every push.
 
 ## Verifying the adoption
 

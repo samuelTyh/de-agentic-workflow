@@ -62,6 +62,15 @@ For the optional scheduled release-cut automation, also copy
 - Reusable CHANGELOG pattern for other CalVer-versioned team repos:
   `templates/changelog-template.md`, `templates/pipeline-templates/changelog-check.yaml`,
   and `docs/adopting-changelog-pattern.md`
+- Post-merge tagging pipeline (`azure-pipelines-tag-release.yml`) — on every
+  push to `main`, if the latest commit message contains `cut release YYYY.MM.DD`,
+  creates an annotated tag `vYYYYMMDD` at `main` HEAD with the matching
+  CHANGELOG section as the tag message. Tags serve as rollback markers and
+  compact references.
+- `scripts/extract_release_notes.py` — extracts a release section from
+  `CHANGELOG.md` for the tag message; usable locally via
+  `--version YYYY.MM.DD`.
+- Adoption guide updated with the post-merge tagger steps.
 
 ---
 
