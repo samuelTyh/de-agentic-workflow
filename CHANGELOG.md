@@ -72,6 +72,18 @@ For the optional scheduled release-cut automation, also copy
   `--version YYYY.MM.DD`.
 - Adoption guide updated with the post-merge tagger steps.
 
+### Changed
+
+- Snowflake migration inventory runbook (`runbooks/snowflake-migration/object-inventory.md`)
+  now describes the actual `DS_Snowflake_Migration.xlsx` workbook as the canonical
+  tracker — six sheets (Airflow PROD DAGs, Snowflake tables/views, procedures, stages,
+  functions, plus an Overview index), per-row disposition vocabulary
+  (`DELETE`/`ARCHIVE`, `MIGRATE TO NEW ACCOUNT`, `KEEP IN OLD ACCOUNT`, `DATA SHARE`),
+  and a "categories not yet in the workbook" gap list pointing at storage integrations,
+  named shares, Streamlit apps, service users, monitors, and downstream dashboards.
+  Refresh-inventory SQL queries retained as a maintenance section. Fixes BI contact
+  to Michael Gabriel for consistency with `runbooks/snowflake-migration/README.md`.
+
 ---
 
 ## [2026.04.23]

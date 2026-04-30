@@ -40,7 +40,7 @@ Step-by-step procedures for migrating VPP (Virtual Power Plant, Forecasting & Tr
 
 | Repo | Purpose |
 |------|---------|
-| `dcm_mvp/snowddl_mvp` | Declarative DDL and RBAC config for Account B (Plan + Apply CI/CD pipelines) |
+| `enpal-energy-ds-snowflake-infra` | Declarative DDL and RBAC config for Account B (Plan + Apply CI/CD pipelines) |
 | `vpp-data-warehouse` | Snowpark stored procedures (`pipelines/prod/procedures/*`) + legacy DDL (being retired) |
 | `vpp-snowpark-apps` | Snowpark apps (`apps/snowpark/*`) + Streamlit apps (`apps/streamlit/*`) |
 | `vpp-airflow` | DAGs that touch Snowflake |
@@ -62,7 +62,7 @@ Step-by-step procedures for migrating VPP (Virtual Power Plant, Forecasting & Tr
 | Team / Party | Role | Contact |
 |--------------|------|---------|
 | DS team | Primary migration owner | Internal Teams |
-| BI team | Inbound `ENPAL_COMPUTE_PROD_SHARE` from main BI Snowflake | Alex Sutcliffe |
+| BI team | Inbound `ENPAL_COMPUTE_PROD_SHARE` from main BI Snowflake | Michael Gabriel |
 | Cloud / IAM team | Azure trust policy updates, storage integrations (long lead time) | File ticket on Day 1 of Phase 0 |
 | Flexa | Outbound forecast share (currently blob export, may switch) | External |
 | Meteomatics | Weather data inbound share | External |
@@ -72,7 +72,7 @@ Step-by-step procedures for migrating VPP (Virtual Power Plant, Forecasting & Tr
 ## Prerequisites
 
 - Access to both Snowflake accounts — see `agents/security/credentials.template.yaml`
-- SnowDDL repo `dcm_mvp/snowddl_mvp` cloned and CI/CD pipelines configured ([TVF-10](https://enpal.atlassian.net/browse/TVF-10) done)
+- SnowDDL repo `enpal-energy-ds-snowflake-infra` cloned and CI/CD pipelines configured ([TVF-10](https://enpal.atlassian.net/browse/TVF-10) done)
 - Azure Key Vault access for storing KPA keys
 - Database layout finalized ([TVF-13](https://enpal.atlassian.net/browse/TVF-13))
 - SSO via Microsoft EntraID configured ([TVF-17](https://enpal.atlassian.net/browse/TVF-17) done)
