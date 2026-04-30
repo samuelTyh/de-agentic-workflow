@@ -89,7 +89,7 @@ For the optional scheduled release-cut automation, also copy
   historical input. The tracker uses a flat `Inventory` sheet (one row
   per asset across all categories) plus `External deps` and
   `Service users & KPA` sheets. Disposition vocabulary aligned to
-  `Move to B` / `Stay in A` / `Dual-target` / `Delete` (where
+  `Move to B` / `Stay in A` / `Dual-target` / `Retire` (where
   `Stay in A` covers both "keep" and "shared into B" since the share
   decision is tracked separately, not as a distinct disposition). Initial
   import seeded ~440 asset rows from `DS_Snowflake_Migration.xlsx`.

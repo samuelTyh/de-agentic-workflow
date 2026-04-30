@@ -30,7 +30,7 @@ Three sheets plus a README sheet.
 | `Name` | DAG id, or `SCHEMA.OBJECT` for Snowflake objects |
 | `Source` | `Account A` for everything imported; otherwise the external account |
 | `Repo + path` | Where the source-of-truth code or definition lives |
-| `Disposition` | One of: `Move to B`, `Stay in A`, `Dual-target`, `Delete`, or blank if undecided |
+| `Disposition` | One of: `Move to B`, `Stay in A`, `Dual-target`, `Retire`, or blank if undecided |
 | `Workstream` | `WS-1` through `WS-6`, or `Cross-cutting`. Assigned at review. |
 | `Owner (DRI)` | Single named person (not a team). Empty until assigned. |
 | `Related Jira` | TVF-XXX ticket key |
@@ -48,7 +48,7 @@ Each row has exactly one disposition:
 | `Move to B` | Recreate on Account B (via SnowDDL or direct DDL) |
 | `Stay in A` | Stays in Account A. Includes data shared into B via Snowflake share — that share decision is tracked separately, not as a distinct disposition. |
 | `Dual-target` | Runs against both accounts during the parallel window |
-| `Delete` | Drop — not migrated |
+| `Retire` | Drop — not migrated |
 | (blank) | Not yet decided. Resolve before Phase 1 begins. |
 
 ## Imported Coverage
