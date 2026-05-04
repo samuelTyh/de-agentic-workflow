@@ -14,7 +14,7 @@ PRs (typo fixes, pure internal refactors, CI-only tweaks) can opt out by
 including `[skip-changelog]` in any commit message on the PR.
 
 A maintainer cuts a dated release by renaming `[Unreleased]` to
-`[YYYY.MM.DD]` when enough changes have accumulated. <!-- TODO: optionally describe automation, e.g. "A scheduled pipeline opens a release-cut PR daily Mon–Thu at 18:00 UTC." -->
+`[YYYY.MM.DD]` when enough changes have accumulated. <!-- TODO: optionally describe automation, e.g. "A scheduled pipeline opens a release-cut PR every Monday at 11:00 UTC." -->
 
 **Sub-section conventions** (only include what applies to the release):
 

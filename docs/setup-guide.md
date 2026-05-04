@@ -156,7 +156,7 @@ repos:
 The repo ships with three Azure DevOps pipelines:
 
 - `azure-pipelines.yml` — PR validation (registered automatically on first PR)
-- `azure-pipelines-release.yml` — scheduled release cut at 18:00 UTC, Monday through Thursday
+- `azure-pipelines-release.yml` — scheduled release cut at 11:00 UTC every Monday
 - `azure-pipelines-tag-release.yml` — post-merge tagging on every push to `main`
 
 The **release pipeline** and the **tag-release pipeline** must each be registered manually once by a repo admin. Same flow for both:
@@ -172,7 +172,7 @@ The **release pipeline** and the **tag-release pipeline** must each be registere
 
 The pipelines use `System.AccessToken` for git operations. The project build service identity needs **Contribute** permission on the repo (default — no change needed) and **Create branch** + **Create tag** permissions (also default). Branch protection on `main` does not block tag pushes.
 
-**Release pipeline:** at 18:00 UTC on Monday–Thursday, if `CHANGELOG.md` has content under `[Unreleased]`, opens a PR that moves that content into a new dated section. A maintainer reviews and merges the PR per normal branch policy. Friday through Sunday are intentionally skipped — anything that lands in that window is swept up in Monday's cut. Does **not** merge the release PR automatically.
+**Release pipeline:** at 11:00 UTC every Monday, if `CHANGELOG.md` has content under `[Unreleased]`, opens a PR that moves that content into a new dated section. A maintainer reviews and merges the PR per normal branch policy. The whole week (Tue–Sun) accumulates in `[Unreleased]` and is swept up in the next Monday's cut. Does **not** merge the release PR automatically.
 
 **Tag-release pipeline:** runs on every push to `main`. If the latest commit message contains `cut release YYYY.MM.DD`, creates an annotated tag `vYYYYMMDD` (e.g. `v20260423`) at the new `main` HEAD. The tag's message body is the matching CHANGELOG section. If the commit isn't a release cut, the pipeline exits with a no-op log line. Use the tags as rollback markers (`git checkout v20260423`) and as compact references for tracking.
 

@@ -97,6 +97,12 @@ For the optional scheduled release-cut automation, also copy
   `Stay in A` covers both "keep" and "shared into B" since the share
   decision is tracked separately, not as a distinct disposition). Initial
   import seeded ~440 asset rows from `DS_Snowflake_Migration.xlsx`.
+- Scheduled release-cut pipeline (`azure-pipelines-release.yml`) now
+  runs **once a week, at 11:00 UTC every Monday** — was 18:00 UTC,
+  Monday through Thursday. Cron updated from `0 18 * * 1-4` to
+  `0 11 * * 1`. Anything landing Tue–Sun accumulates in `[Unreleased]`
+  and is swept up in the next Monday's cut. Setup guide and the
+  changelog-template placeholder updated to match.
 
 ### Removed
 

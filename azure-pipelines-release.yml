@@ -1,13 +1,15 @@
 # Scheduled release-cut pipeline for agent-workflow-dev.
 #
-# Runs at 18:00 UTC Monday through Thursday. If CHANGELOG.md has content
+# Runs once a week, at 11:00 UTC every Monday. If CHANGELOG.md has content
 # under [Unreleased], opens a PR that moves that content into a new
 # [YYYY.MM.DD] section. A maintainer reviews and merges the PR per normal
 # branch policy.
 #
-# Why Mon-Thu only: avoid cutting a release on Friday or over the weekend
-# when no one is around to review the PR. Anything that lands Fri-Sun
-# accumulates in [Unreleased] and is swept up in the Monday cut.
+# Why weekly on Monday: cuts releases at a single, predictable cadence.
+# Anything that lands Tuesday through Sunday accumulates in [Unreleased]
+# and is swept up in the next Monday's cut. The 11:00 UTC time gives the
+# team a couple of hours to review and merge the auto-PR within the
+# working day across Europe.
 #
 # This pipeline must be registered once in Azure DevOps pointing at this YAML
 # file — see docs/setup-guide.md for the one-time admin step.
@@ -24,8 +26,8 @@ trigger: none
 pr: none
 
 schedules:
-  - cron: '0 18 * * 1-4'
-    displayName: '18:00 UTC, Monday through Thursday'
+  - cron: '0 11 * * 1'
+    displayName: '11:00 UTC, every Monday'
     branches:
       include:
         - main
@@ -97,7 +99,7 @@ jobs:
           set -e
           DESC_FILE="$(mktemp)"
           {
-            echo "Automated release cut by the daily scheduled pipeline."
+            echo "Automated release cut by the weekly scheduled pipeline."
             echo ""
             echo "This PR moves all bullets under \`[Unreleased]\` into a new \`[$(RELEASE_DATE)]\` section in CHANGELOG.md. No other changes."
             echo ""
