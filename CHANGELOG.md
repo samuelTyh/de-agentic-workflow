@@ -44,6 +44,10 @@ For the optional scheduled release-cut automation, also copy
 
 ## [Unreleased]
 
+---
+
+## [2026.05.04]
+
 ### Added
 
 - `CHANGELOG.md` with backfilled release history (2026-04-20 through 2026-04-23)
